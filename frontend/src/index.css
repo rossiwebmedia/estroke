@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  @apply bg-surface text-primary-900 font-sans antialiased;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 font-semibold transition focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+  .btn-primary {
+    @apply btn bg-accent text-white hover:bg-accent-600 focus:ring-accent;
+  }
+  .btn-secondary {
+    @apply btn bg-white text-primary border border-primary-100 hover:bg-primary-50 focus:ring-accent;
+  }
+  .btn-ghost {
+    @apply btn bg-transparent text-primary hover:bg-primary-50;
+  }
+  .btn-danger {
+    @apply btn bg-danger text-white hover:opacity-90 focus:ring-danger;
+  }
+  .card {
+    @apply bg-white rounded-2xl shadow-card border border-primary-50;
+  }
+  .input {
+    @apply w-full rounded-lg border border-primary-100 bg-white px-3 py-2.5 text-base text-primary-900 placeholder-primary-100 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent;
+  }
+  .label {
+    @apply block text-sm font-medium text-primary-700 mb-1.5;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold;
+  }
+}
+
+/* Print: nascondi tutto tranne #print-root */
+@media print {
+  body { background: white; }
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
+  @page { size: A4; margin: 16mm; }
+}
+.print-only { display: none; }

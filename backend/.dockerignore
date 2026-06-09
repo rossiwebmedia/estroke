@@ -1,0 +1,5 @@
+node_modules
+npm-debug.log
+data/evaluations.json
+data/evaluations.json.tmp
+.DS_Store

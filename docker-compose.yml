@@ -1,0 +1,25 @@
+services:
+  backend:
+    build: ./backend
+    container_name: estroke-backend
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+      - ESTROKE_DATA_FILE=/app/data/evaluations.json
+    ports:
+      - "4000:4000"
+    volumes:
+      - estroke_data:/app/data
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: estroke-frontend
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+
+volumes:
+  estroke_data:

@@ -1,0 +1,12 @@
+**/node_modules
+**/dist
+**/build
+**/.DS_Store
+**/npm-debug.log
+**/data/evaluations.json
+**/data/evaluations.json.tmp
+.git
+.gitignore
+.claude
+README.md
+docker-compose.yml
