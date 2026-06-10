@@ -145,8 +145,26 @@ const pgStore = {
 };
 
 // ============================================================================
-// Export
+// Export — provo Postgres se c'è DATABASE_URL, fallback a JSON al primo errore
+// (con log esplicito) per evitare di rendere il container un crash-loop in caso
+// di credenziali sbagliate o DB irraggiungibile.
 // ============================================================================
-export const store = HAS_DB ? pgStore : jsonStore;
-await store.init();
-console.log(`[store] back-end attivo: ${store.kind}${store.filePath ? ' (' + store.filePath + ')' : ''}`);
+let activeStore = jsonStore;
+if (HAS_DB) {
+  try {
+    await pgStore.init();
+    activeStore = pgStore;
+    console.log('[store] back-end attivo: postgres');
+  } catch (err) {
+    console.error('[store] init Postgres fallita:', err?.message || err);
+    console.warn('[store] fallback automatico al JSON store (i dati NON saranno persistenti tra redeploy).');
+    await jsonStore.init();
+    activeStore = jsonStore;
+    console.log(`[store] back-end attivo: json (${jsonStore.filePath})`);
+  }
+} else {
+  await jsonStore.init();
+  console.log(`[store] back-end attivo: json (${jsonStore.filePath})`);
+}
+
+export const store = activeStore;
