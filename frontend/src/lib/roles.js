@@ -16,7 +16,12 @@ export function can(role, action) {
 
 // Etichette UI per gli stati di una valutazione.
 export const STATUS_LABEL = {
-  created:     { text: 'In transito', tone: 'accent'  },
-  confirmed:   { text: 'Confermato',  tone: 'success' },
-  overridden:  { text: 'Corretto',    tone: 'warning' },
+  created:     { text: 'In attesa di partenza', tone: 'accent',  icon: '📝' },
+  in_transit:  { text: 'Ambulanza in viaggio',  tone: 'accent',  icon: '🚑' },
+  arrived:     { text: 'Arrivato al centro',    tone: 'accent',  icon: '🏥' },
+  confirmed:   { text: 'Confermato',            tone: 'success', icon: '✅' },
+  overridden:  { text: 'Corretto',              tone: 'warning', icon: '⚠️' },
 };
+
+// Quali stati sono considerati "attivi" (caso ancora in corso, non chiuso dal Medico HUB).
+export const ACTIVE_STATUSES = ['created', 'in_transit', 'arrived'];

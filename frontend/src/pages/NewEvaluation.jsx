@@ -6,6 +6,7 @@ import EvaluationSummary from '../components/EvaluationSummary.jsx';
 import OnsetTimer from '../components/OnsetTimer.jsx';
 import { SYMPTOM_FIELDS, decisionEngine } from '../lib/decisionEngine.js';
 import { useOperatorGeolocation } from '../lib/useGeolocation.js';
+import { useDraft } from '../lib/useDraft.js';
 import { api, getRole } from '../lib/api.js';
 import { can } from '../lib/roles.js';
 import { IconArrowLeft, IconArrowRight, IconCheck } from '../components/icons.jsx';
@@ -45,6 +46,10 @@ export default function NewEvaluation() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+
+  // Auto-save bozza in localStorage
+  const draft = useDraft('new-evaluation', data, setData);
+  const [draftBanner, setDraftBanner] = useState(() => draft.hasDraft());
 
   // Guard di accesso: solo Operatore 118 può creare valutazioni.
   useEffect(() => {
@@ -99,6 +104,7 @@ export default function NewEvaluation() {
         notes: data.notes?.trim() || '',
       };
       const created = await api.createEvaluation(body);
+      draft.clearDraft();
       navigate(`/evaluations/${created.id}`, { state: { justCreated: true } });
     } catch (e) {
       setError(e.message + (e.details ? `\n${e.details.join(' ')}` : ''));
@@ -174,6 +180,26 @@ export default function NewEvaluation() {
       {geo.status === 'denied' && (
         <div className="mt-3 card border-primary-50 bg-primary-50/40 text-primary-700 p-2.5 text-xs">
           📍 Geolocalizzazione disattivata: compila manualmente comune e tempi HUB/SPOKE.
+        </div>
+      )}
+
+      {draftBanner && (
+        <div className="mt-3 card border-warning-100 bg-warning-50 text-primary-900 p-3 flex items-center justify-between gap-3 text-sm">
+          <span>📝 Trovata una bozza non salvata (compilata <strong>{draft.draftAge() ?? 0} min fa</strong>). Vuoi riprenderla?</span>
+          <div className="flex gap-2 shrink-0">
+            <button
+              onClick={() => { draft.loadDraft(); setDraftBanner(false); }}
+              className="btn-primary text-sm py-1.5 px-3"
+            >
+              Riprendi
+            </button>
+            <button
+              onClick={() => { draft.clearDraft(); setDraftBanner(false); }}
+              className="btn-secondary text-sm py-1.5 px-3"
+            >
+              Scarta
+            </button>
+          </div>
         </div>
       )}
 

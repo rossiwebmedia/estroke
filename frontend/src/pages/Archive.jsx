@@ -11,7 +11,13 @@ export default function Archive() {
   const [riskFilter, setRiskFilter] = useState('');
   const [q, setQ] = useState('');
 
-  useEffect(() => { reload(); }, []);
+  useEffect(() => {
+    reload();
+    const id = setInterval(() => {
+      if (document.visibilityState === 'visible') reload();
+    }, 10000);
+    return () => clearInterval(id);
+  }, []);
   function reload() {
     api.listEvaluations().then(setItems).catch((e) => setError(e.message));
   }

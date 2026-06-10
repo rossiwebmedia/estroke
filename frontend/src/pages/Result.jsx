@@ -5,6 +5,7 @@ import { can } from '../lib/roles.js';
 import ResultCard from '../components/ResultCard.jsx';
 import DecisionTimeline from '../components/DecisionTimeline.jsx';
 import HubReviewActions from '../components/HubReviewActions.jsx';
+import TransitActions from '../components/TransitActions.jsx';
 import OnsetTimer from '../components/OnsetTimer.jsx';
 import { IconPrinter, IconPlus, IconCheck } from '../components/icons.jsx';
 
@@ -70,6 +71,11 @@ export default function Result() {
       </div>
 
       <ResultCard result={displayedResult} />
+
+      <TransitActions
+        evaluation={evaluation}
+        onUpdated={(updated) => setEvaluation(updated)}
+      />
 
       <HubReviewActions
         evaluation={evaluation}

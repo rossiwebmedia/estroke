@@ -81,6 +81,44 @@ router.get('/:id', async (req, res) => {
   res.json(e);
 });
 
+// Transito dell'ambulanza: l'Operatore 118 marca la partenza e l'arrivo al centro.
+// Body: { action: 'start_transit' | 'mark_arrived', by?: string }
+router.patch('/:id/transit', async (req, res) => {
+  const e = await store.getById(req.params.id);
+  if (!e) return res.status(404).json({ error: 'Valutazione non trovata.' });
+
+  const action = req.body?.action;
+  if (!['start_transit', 'mark_arrived'].includes(action)) {
+    return res.status(400).json({ error: 'Azione non valida: usare "start_transit" o "mark_arrived".' });
+  }
+  const by = ['Operatore 118','Medico HUB','Centrale Operativa'].includes(req.body?.by)
+    ? req.body.by : 'Operatore 118';
+
+  const currentTimeline = e.transitTimeline || {};
+  const nowIso = new Date().toISOString();
+  const patch = { transitTimeline: { ...currentTimeline } };
+
+  if (action === 'start_transit') {
+    if (e.status !== 'created') {
+      return res.status(409).json({ error: `Impossibile iniziare il transito da stato "${e.status}".` });
+    }
+    patch.status = 'in_transit';
+    patch.transitTimeline.dispatchedAt = nowIso;
+    patch.transitTimeline.dispatchedBy = by;
+  } else {
+    if (!['created', 'in_transit'].includes(e.status)) {
+      return res.status(409).json({ error: `Impossibile marcare arrivo da stato "${e.status}".` });
+    }
+    if (!patch.transitTimeline.dispatchedAt) patch.transitTimeline.dispatchedAt = nowIso;
+    patch.status = 'arrived';
+    patch.transitTimeline.arrivedAt = nowIso;
+    patch.transitTimeline.arrivedBy = by;
+  }
+
+  const updated = await store.update(req.params.id, patch);
+  res.json(updated);
+});
+
 // Review da parte del Medico HUB: conferma o override della destinazione.
 // Body: { action: 'confirm' | 'override', overrideTo?: 'HUB'|'SPOKE', notes?: string, by?: string }
 router.patch('/:id/review', async (req, res) => {

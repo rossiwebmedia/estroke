@@ -22,6 +22,7 @@ export const api = {
   createEvaluation: (body) => request('/evaluations', { method: 'POST', body: JSON.stringify(body) }),
   deleteEvaluation: (id) => request(`/evaluations/${id}`, { method: 'DELETE' }),
   reviewEvaluation: (id, body) => request(`/evaluations/${id}/review`, { method: 'PATCH', body: JSON.stringify(body) }),
+  transitEvaluation: (id, body) => request(`/evaluations/${id}/transit`, { method: 'PATCH', body: JSON.stringify(body) }),
 };
 
 export function getRole() {
