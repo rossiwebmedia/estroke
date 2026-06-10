@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PatientForm from '../components/PatientForm.jsx';
 import ScoreCalculator from '../components/ScoreCalculator.jsx';
+import EvaluationSummary from '../components/EvaluationSummary.jsx';
 import { SYMPTOM_FIELDS, decisionEngine } from '../lib/decisionEngine.js';
 import { api, getRole } from '../lib/api.js';
 import { can } from '../lib/roles.js';
@@ -9,7 +10,7 @@ import { IconArrowLeft, IconArrowRight, IconCheck } from '../components/icons.js
 
 // Ordine step: prima la valutazione clinica (paziente + sintomi),
 // poi la logistica HUB/SPOKE.
-const STEPS = ['Paziente', 'Scala sintomi', 'Logistica'];
+const STEPS = ['Paziente', 'Scala sintomi', 'Logistica', 'Riepilogo'];
 
 const emptySymptoms = Object.fromEntries(SYMPTOM_FIELDS.map((f) => [f.key, 0]));
 
@@ -129,7 +130,7 @@ export default function NewEvaluation() {
   return (
     <div>
       <h1 className="text-2xl lg:text-3xl font-extrabold text-primary-900 tracking-tight">Nuova valutazione</h1>
-      <p className="text-primary-700 mt-1">Compila i 3 step. Il punteggio si aggiorna in tempo reale.</p>
+      <p className="text-primary-700 mt-1">Compila i 4 step. Il punteggio si aggiorna in tempo reale.</p>
 
       <div className="grid lg:grid-cols-[1fr_320px] gap-6 mt-6">
         <div className="space-y-4">
@@ -155,6 +156,15 @@ export default function NewEvaluation() {
             <div className="card p-5 lg:p-6">
               <PatientForm value={data} onChange={setData} step="logistics" />
             </div>
+          )}
+
+          {step === 3 && (
+            <EvaluationSummary
+              data={data}
+              onEditPaziente={()  => { setStep(0); setSymptomStep(0); }}
+              onEditSintomi={()   => { setStep(1); setSymptomStep(0); }}
+              onEditLogistica={() => { setStep(2); }}
+            />
           )}
 
           {step === 2 && (
@@ -189,6 +199,8 @@ export default function NewEvaluation() {
                 <>Sintomo successivo <IconArrowRight /></>
               ) : step === 1 && symptomStep === TOTAL_SYMPTOMS - 1 ? (
                 <>Vai alla logistica <IconArrowRight /></>
+              ) : step === 2 ? (
+                <>Vai al riepilogo <IconArrowRight /></>
               ) : (
                 <>Avanti <IconArrowRight /></>
               )}
@@ -254,7 +266,7 @@ function SymptomProgress({ current, total }) {
 
 function Stepper({ step }) {
   return (
-    <ol className="grid grid-cols-3 gap-2">
+    <ol className="grid grid-cols-2 md:grid-cols-4 gap-2">
       {STEPS.map((s, i) => {
         const state = i < step ? 'done' : i === step ? 'active' : 'todo';
         return (
