@@ -359,3 +359,5 @@ npm run dev          # http://localhost:5173 (proxy /api → :4000)
 Prototipo realizzato per finalità dimostrative e commerciali interne al progetto E-STROKE.
 Da non distribuire come strumento medico. La presentazione clinica del progetto rimane di proprietà
 di Daniele Romano e Alessandro Scutiero.
+
+<!-- Auto-deploy webhook test: 2026-06-10T09:03:34Z -->
