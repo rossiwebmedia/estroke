@@ -51,7 +51,7 @@ docker compose down -v
 
 - **Frontend**: React 18 + Vite 5 + React Router 6 + Tailwind CSS 3
 - **Backend**: Node.js 20 + Express 4 (ESM)
-- **Persistenza**: file JSON locale con scrittura atomica (`backend/data/evaluations.json`)
+- **Persistenza**: **PostgreSQL** se `DATABASE_URL` è settato (deploy Railway), altrimenti fallback automatico a **file JSON** locale con scrittura atomica (`backend/data/evaluations.json`) — utile per dev locale senza dover installare Postgres
 - **Container**: Docker multi-stage (Nginx serve il build del frontend e fa da proxy verso il backend)
 
 Nessuna dipendenza nativa, nessuna build complicata.
