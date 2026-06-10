@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import PatientForm from '../components/PatientForm.jsx';
 import ScoreCalculator from '../components/ScoreCalculator.jsx';
 import EvaluationSummary from '../components/EvaluationSummary.jsx';
+import OnsetTimer from '../components/OnsetTimer.jsx';
 import { SYMPTOM_FIELDS, decisionEngine } from '../lib/decisionEngine.js';
+import { useOperatorGeolocation } from '../lib/useGeolocation.js';
 import { api, getRole } from '../lib/api.js';
 import { can } from '../lib/roles.js';
 import { IconArrowLeft, IconArrowRight, IconCheck } from '../components/icons.jsx';
@@ -53,6 +55,25 @@ export default function NewEvaluation() {
       });
     }
   }, [navigate]);
+
+  // Auto-geolocation: chiediamo posizione 1 volta e pre-compiliamo logistica + comune.
+  // Il flag `applied` evita di sovrascrivere modifiche manuali dell'operatore.
+  const geo = useOperatorGeolocation({ enabled: true });
+  const [geoApplied, setGeoApplied] = useState(false);
+  const [geoDismissed, setGeoDismissed] = useState(false);
+
+  useEffect(() => {
+    if (geo.status !== 'ok' || geoApplied) return;
+    setData((d) => ({
+      ...d,
+      city: d.city || geo.city?.name || '',
+      hubTimeMin:      d.hubTimeMin      || (geo.hub   ? String(geo.hub.driveMinutes) : ''),
+      hubDistanceKm:   d.hubDistanceKm   || (geo.hub   ? String(geo.hub.distanceKm)   : ''),
+      spokeTimeMin:    d.spokeTimeMin    || (geo.spoke ? String(geo.spoke.driveMinutes) : ''),
+      spokeDistanceKm: d.spokeDistanceKm || (geo.spoke ? String(geo.spoke.distanceKm)   : ''),
+    }));
+    setGeoApplied(true);
+  }, [geo.status, geo.city, geo.hub, geo.spoke, geoApplied]);
 
   // Anteprima live (stesso engine del backend)
   const preview = useMemo(() => decisionEngine({
@@ -129,10 +150,34 @@ export default function NewEvaluation() {
 
   return (
     <div>
-      <h1 className="text-2xl lg:text-3xl font-extrabold text-primary-900 tracking-tight">Nuova valutazione</h1>
+      <OnsetTimer
+        onsetMinutes={data.onsetMinutes}
+        lastSeenWell={data.lastSeenWell}
+        sticky
+      />
+
+      <h1 className="text-2xl lg:text-3xl font-extrabold text-primary-900 tracking-tight mt-2">Nuova valutazione</h1>
       <p className="text-primary-700 mt-1">Compila i 4 step. Il punteggio si aggiorna in tempo reale.</p>
 
-      <div className="grid lg:grid-cols-[1fr_320px] gap-6 mt-6">
+      {geo.status === 'ok' && !geoDismissed && (
+        <div className="mt-3 card border-success-100 bg-success-50 text-primary-900 p-3 flex items-start gap-3 text-sm">
+          <span className="text-success text-base">📍</span>
+          <div className="flex-1">
+            Geolocalizzato a <strong>{geo.city?.name || 'posizione attuale'}</strong>.
+            {geo.hub   && <> HUB più vicino: <strong>{geo.hub.name}</strong> · {geo.hub.driveMinutes} min · {geo.hub.distanceKm} km.</>}
+            {geo.spoke && <> SPOKE: <strong>{geo.spoke.name}</strong> · {geo.spoke.driveMinutes} min · {geo.spoke.distanceKm} km.</>}
+            <span className="text-primary-700"> I valori sono modificabili.</span>
+          </div>
+          <button onClick={() => setGeoDismissed(true)} className="text-primary-700 hover:text-primary text-xs">×</button>
+        </div>
+      )}
+      {geo.status === 'denied' && (
+        <div className="mt-3 card border-primary-50 bg-primary-50/40 text-primary-700 p-2.5 text-xs">
+          📍 Geolocalizzazione disattivata: compila manualmente comune e tempi HUB/SPOKE.
+        </div>
+      )}
+
+      <div className="grid lg:grid-cols-[1fr_320px] gap-6 mt-4">
         <div className="space-y-4">
           <Stepper step={step} />
           {step === 0 && (

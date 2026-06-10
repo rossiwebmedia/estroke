@@ -5,6 +5,7 @@ import { can } from '../lib/roles.js';
 import ResultCard from '../components/ResultCard.jsx';
 import DecisionTimeline from '../components/DecisionTimeline.jsx';
 import HubReviewActions from '../components/HubReviewActions.jsx';
+import OnsetTimer from '../components/OnsetTimer.jsx';
 import { IconPrinter, IconPlus, IconCheck } from '../components/icons.jsx';
 
 export default function Result() {
@@ -33,6 +34,12 @@ export default function Result() {
 
   return (
     <div className="space-y-6">
+      <OnsetTimer
+        onsetMinutes={input.onsetMinutes}
+        lastSeenWell={input.lastSeenWell}
+        sticky
+      />
+
       {justCreated && (
         <div className="card border-success-100 bg-success-50 text-success p-3 flex items-center gap-2 text-sm">
           <IconCheck className="w-5 h-5" />

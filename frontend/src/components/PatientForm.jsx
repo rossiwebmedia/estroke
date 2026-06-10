@@ -1,8 +1,12 @@
 import React from 'react';
+import QuickChipLastSeen from './QuickChipLastSeen.jsx';
 
 export default function PatientForm({ value, onChange, step }) {
   function set(field, v) {
     onChange({ ...value, [field]: v });
+  }
+  function setMany(patch) {
+    onChange({ ...value, ...patch });
   }
 
   // Compat: accetta sia gli interi storici (0, 1) che le nuove stringhe semantiche.
@@ -52,23 +56,11 @@ export default function PatientForm({ value, onChange, step }) {
             placeholder="es. Catania"
           />
         </div>
-        <div>
-          <label className="label">Tempo dall'esordio dei sintomi (minuti)</label>
-          <input
-            className="input"
-            type="number" min="0"
-            value={value.onsetMinutes}
-            onChange={(e) => set('onsetMinutes', e.target.value)}
-            placeholder="es. 45"
-          />
-        </div>
-        <div>
-          <label className="label">Ultima volta visto bene</label>
-          <input
-            className="input"
-            type="datetime-local"
+        <div className="md:col-span-2">
+          <QuickChipLastSeen
             value={value.lastSeenWell}
-            onChange={(e) => set('lastSeenWell', e.target.value)}
+            onsetMinutes={value.onsetMinutes}
+            onChange={setMany}
           />
         </div>
       </div>
