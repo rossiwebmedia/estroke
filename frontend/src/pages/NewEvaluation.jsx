@@ -36,6 +36,8 @@ const destBadge = {
 
 export default function NewEvaluation() {
   const [step, setStep] = useState(0);
+  // Sub-step interno alla "Scala sintomi": indice del sintomo corrente (0..8).
+  const [symptomStep, setSymptomStep] = useState(0);
   const [data, setData] = useState(initial);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -83,12 +85,33 @@ export default function NewEvaluation() {
     }
   }
 
+  const TOTAL_SYMPTOMS = SYMPTOM_FIELDS.length;
+
   function next() {
-    if (step < STEPS.length - 1) setStep(step + 1);
-    else submit();
+    // Dentro la Scala sintomi navighiamo un sintomo alla volta.
+    if (step === 1 && symptomStep < TOTAL_SYMPTOMS - 1) {
+      setSymptomStep(symptomStep + 1);
+      return;
+    }
+    if (step < STEPS.length - 1) {
+      setStep(step + 1);
+      setSymptomStep(0); // entrando di nuovo nei sintomi, parti da 0
+      return;
+    }
+    submit();
   }
   function back() {
-    if (step > 0) setStep(step - 1);
+    // Indietro dentro la Scala sintomi
+    if (step === 1 && symptomStep > 0) {
+      setSymptomStep(symptomStep - 1);
+      return;
+    }
+    if (step > 0) {
+      // se torno indietro dalla Logistica, riprendo l'ultimo sintomo
+      const prev = step - 1;
+      setStep(prev);
+      if (prev === 1) setSymptomStep(TOTAL_SYMPTOMS - 1);
+    }
   }
 
   const canProceed = (() => {
@@ -98,6 +121,11 @@ export default function NewEvaluation() {
     return true;
   })();
 
+  const isLastStep =
+    step === STEPS.length - 1 ||
+    // anche l'ultima schermata della Scala sintomi NON è l'ultima dell'intero form
+    false;
+
   return (
     <div>
       <h1 className="text-2xl lg:text-3xl font-extrabold text-primary-900 tracking-tight">Nuova valutazione</h1>
@@ -106,20 +134,28 @@ export default function NewEvaluation() {
       <div className="grid lg:grid-cols-[1fr_320px] gap-6 mt-6">
         <div className="space-y-4">
           <Stepper step={step} />
-          <div className="card p-5 lg:p-6">
-            {step === 0 && (
+          {step === 0 && (
+            <div className="card p-5 lg:p-6">
               <PatientForm value={data} onChange={setData} step="patient" />
-            )}
-            {step === 1 && (
+            </div>
+          )}
+
+          {step === 1 && (
+            <div className="space-y-3">
+              <SymptomProgress current={symptomStep} total={TOTAL_SYMPTOMS} />
               <ScoreCalculator
                 value={data.symptoms}
                 onChange={(symptoms) => setData({ ...data, symptoms })}
+                singleIndex={symptomStep}
               />
-            )}
-            {step === 2 && (
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="card p-5 lg:p-6">
               <PatientForm value={data} onChange={setData} step="logistics" />
-            )}
-          </div>
+            </div>
+          )}
 
           {step === 2 && (
             <div className="card p-5">
@@ -139,13 +175,23 @@ export default function NewEvaluation() {
 
           {error && <div className="card p-4 text-danger border-danger-100 whitespace-pre-wrap">{error}</div>}
           <div className="flex justify-between gap-3">
-            <button onClick={back} disabled={step === 0} className="btn-secondary disabled:opacity-40">
+            <button
+              onClick={back}
+              disabled={step === 0 && symptomStep === 0}
+              className="btn-secondary disabled:opacity-40"
+            >
               <IconArrowLeft /> Indietro
             </button>
             <button onClick={next} disabled={!canProceed || submitting} className="btn-primary disabled:opacity-60">
-              {step === STEPS.length - 1
-                ? (submitting ? 'Salvataggio…' : (<><IconCheck /> Salva valutazione</>))
-                : (<>Avanti <IconArrowRight /></>)}
+              {step === STEPS.length - 1 ? (
+                submitting ? 'Salvataggio…' : (<><IconCheck /> Salva valutazione</>)
+              ) : step === 1 && symptomStep < TOTAL_SYMPTOMS - 1 ? (
+                <>Sintomo successivo <IconArrowRight /></>
+              ) : step === 1 && symptomStep === TOTAL_SYMPTOMS - 1 ? (
+                <>Vai alla logistica <IconArrowRight /></>
+              ) : (
+                <>Avanti <IconArrowRight /></>
+              )}
             </button>
           </div>
         </div>
@@ -178,6 +224,29 @@ export default function NewEvaluation() {
             Non costituisce diagnosi medica.
           </div>
         </aside>
+      </div>
+    </div>
+  );
+}
+
+function SymptomProgress({ current, total }) {
+  const field = SYMPTOM_FIELDS[current];
+  const pct = ((current + 1) / total) * 100;
+  return (
+    <div className="card p-4">
+      <div className="flex items-baseline justify-between gap-3 mb-2">
+        <div className="text-xs uppercase tracking-widest text-primary-700 font-bold">
+          Sintomo {current + 1} di {total}
+        </div>
+        <div className="text-xs text-primary-700/70 truncate">
+          {field?.label}{field?.side ? ` · ${field.side}` : ''}
+        </div>
+      </div>
+      <div className="h-2 bg-primary-50 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-accent transition-all"
+          style={{ width: `${pct}%` }}
+        />
       </div>
     </div>
   );

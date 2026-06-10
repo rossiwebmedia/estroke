@@ -3,24 +3,60 @@
 // ricalcola comunque tutto al POST (single source of truth).
 
 export const SYMPTOM_FIELDS = [
-  { key: 'gazeDeviation',      label: 'Deviazione sguardo',           options: [0, 25, 50],
-    optionLabels: ['Assente', 'Lieve / parziale', 'Forzata / completa'] },
-  { key: 'aphasia',            label: 'Afasia',                        options: [0, 20, 40],
-    optionLabels: ['Assente', 'Moderata', 'Severa / globale'] },
-  { key: 'neglect',            label: 'Neglect',                       options: [0, 20, 40],
-    optionLabels: ['Assente', 'Parziale', 'Completo'] },
-  { key: 'upperLimbMotorLeft',  label: 'Deficit motorio arto sup.', side: 'Sx', options: [0, 10, 20],
-    optionLabels: ['Assente', 'Paresi', 'Plegia'] },
-  { key: 'upperLimbMotorRight', label: 'Deficit motorio arto sup.', side: 'Dx', options: [0, 10, 20],
-    optionLabels: ['Assente', 'Paresi', 'Plegia'] },
-  { key: 'lowerLimbMotorLeft',  label: 'Deficit motorio arto inf.', side: 'Sx', options: [0, 7, 15],
-    optionLabels: ['Assente', 'Paresi', 'Plegia'] },
-  { key: 'lowerLimbMotorRight', label: 'Deficit motorio arto inf.', side: 'Dx', options: [0, 7, 15],
-    optionLabels: ['Assente', 'Paresi', 'Plegia'] },
-  { key: 'dysarthria',         label: 'Disartria',                     options: [0, 10, 20],
-    optionLabels: ['Assente', 'Lieve', 'Severa / anartria'] },
-  { key: 'consciousness',      label: 'Alterazione coscienza',         options: [0, 20, 40],
-    optionLabels: ['Vigile', 'Sopore', 'Coma / stupor'] },
+  {
+    key: 'gazeDeviation', label: 'Deviazione sguardo', options: [0, 25, 50],
+    optionLabels: ['Assente', 'Lieve / parziale', 'Forzata / completa'],
+    description: 'Gli occhi del paziente sono deviati verso un lato? Chiedi di seguire il tuo dito da sinistra a destra: se gli occhi non superano la linea mediana c\'è deviazione forzata.',
+    howTo: 'Test: muovi un dito davanti al paziente in orizzontale, osserva se entrambi gli occhi lo seguono.',
+  },
+  {
+    key: 'aphasia', label: 'Afasia', options: [0, 20, 40],
+    optionLabels: ['Assente', 'Moderata', 'Severa / globale'],
+    description: 'Il paziente fatica a comprendere o a produrre il linguaggio? Verifica sia la comprensione che la produzione.',
+    howTo: 'Test: mostra un oggetto comune (penna, chiave) e chiedi di nominarlo. Poi chiedi di ripetere una frase semplice come "il cielo è azzurro".',
+  },
+  {
+    key: 'neglect', label: 'Neglect', options: [0, 20, 40],
+    optionLabels: ['Assente', 'Parziale', 'Completo'],
+    description: 'Il paziente ignora uno dei due lati del corpo o dello spazio? Tipico nei pazienti con ictus emisferico destro che non sentono il lato sinistro.',
+    howTo: 'Test: tocca contemporaneamente entrambi i lati del corpo (mani o guance) e chiedi se sente uno o due tocchi. Mostra oggetti a sinistra e a destra contemporaneamente.',
+  },
+  {
+    key: 'upperLimbMotorLeft', label: 'Deficit motorio arto sup.', side: 'Sx', options: [0, 10, 20],
+    optionLabels: ['Assente', 'Paresi', 'Plegia'],
+    description: 'Il braccio sinistro è debole o non si muove? Tieni in considerazione il lato che il paziente racconta come affetto.',
+    howTo: 'Test: chiedi al paziente di sollevare il braccio sinistro a 90° (in piedi) o 45° (sdraiato) e mantenerlo per 10 secondi. Paresi = scende, plegia = non si solleva.',
+  },
+  {
+    key: 'upperLimbMotorRight', label: 'Deficit motorio arto sup.', side: 'Dx', options: [0, 10, 20],
+    optionLabels: ['Assente', 'Paresi', 'Plegia'],
+    description: 'Il braccio destro è debole o non si muove? Confronta con il lato controlaterale per identificare la lateralizzazione.',
+    howTo: 'Test: chiedi al paziente di sollevare il braccio destro a 90° (in piedi) o 45° (sdraiato) e mantenerlo per 10 secondi. Paresi = scende, plegia = non si solleva.',
+  },
+  {
+    key: 'lowerLimbMotorLeft', label: 'Deficit motorio arto inf.', side: 'Sx', options: [0, 7, 15],
+    optionLabels: ['Assente', 'Paresi', 'Plegia'],
+    description: 'La gamba sinistra è debole o non si muove? Il deficit motorio inferiore è meno comune di quello superiore ma più grave.',
+    howTo: 'Test: con paziente sdraiato, chiedi di sollevare la gamba sinistra tesa a 30° e mantenerla per 5 secondi. Osserva se cade o non riesce a sollevarla.',
+  },
+  {
+    key: 'lowerLimbMotorRight', label: 'Deficit motorio arto inf.', side: 'Dx', options: [0, 7, 15],
+    optionLabels: ['Assente', 'Paresi', 'Plegia'],
+    description: 'La gamba destra è debole o non si muove? Confronta con il lato controlaterale.',
+    howTo: 'Test: con paziente sdraiato, chiedi di sollevare la gamba destra tesa a 30° e mantenerla per 5 secondi. Osserva se cade o non riesce a sollevarla.',
+  },
+  {
+    key: 'dysarthria', label: 'Disartria', options: [0, 10, 20],
+    optionLabels: ['Assente', 'Lieve', 'Severa / anartria'],
+    description: 'Il linguaggio è impastato o biascicato? La disartria riguarda l\'articolazione, non il contenuto (a differenza dell\'afasia).',
+    howTo: 'Test: fai ripetere una frase con consonanti complesse, es. "trentatré trentini entrarono a Trento". Lieve = comprensibile ma articolato male, severa = parole incomprensibili.',
+  },
+  {
+    key: 'consciousness', label: 'Alterazione coscienza', options: [0, 20, 40],
+    optionLabels: ['Vigile', 'Sopore', 'Coma / stupor'],
+    description: 'Qual è il livello di coscienza? Vigile = risponde e cooperante, sopore = risponde solo a stimoli energici, coma = nessuna risposta.',
+    howTo: 'Test: parlare al paziente con voce normale. Se non risponde, prova con voce alta. Se ancora niente, applica uno stimolo doloroso (pizzicotto al trapezio).',
+  },
 ];
 
 const DISCLAIMER = 'La decisione finale resta in carico al personale sanitario qualificato.';
