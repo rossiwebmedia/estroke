@@ -361,3 +361,4 @@ Da non distribuire come strumento medico. La presentazione clinica del progetto 
 di Daniele Romano e Alessandro Scutiero.
 
 <!-- Auto-deploy webhook test: 2026-06-10T09:03:34Z -->
+<!-- Auto-deploy webhook verified at 2026-06-10T09:12:33Z -->
