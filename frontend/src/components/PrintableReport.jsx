@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import QRCode from 'qrcode';
 
 function fmt(iso) {
   if (!iso) return '—';
@@ -12,21 +13,36 @@ const destLabel = {
 };
 
 export default function PrintableReport({ evaluation }) {
+  const [qrDataUrl, setQrDataUrl] = useState(null);
+  useEffect(() => {
+    if (!evaluation?.id || typeof window === 'undefined') return;
+    const url = `${window.location.origin}/evaluations/${evaluation.id}`;
+    QRCode.toDataURL(url, { width: 180, margin: 1, color: { dark: '#0B2A4A', light: '#FFFFFF' } })
+      .then(setQrDataUrl)
+      .catch(() => setQrDataUrl(null));
+  }, [evaluation?.id]);
+
   if (!evaluation) return null;
   const { input, result, createdAt, id } = evaluation;
   return (
     <div className="max-w-3xl mx-auto bg-white text-primary-900 p-8 print:p-0">
-      <header className="border-b-2 border-primary pb-4 mb-6 flex items-center justify-between">
+      <header className="border-b-2 border-primary pb-4 mb-6 flex items-start justify-between gap-4">
         <div>
           <div className="text-3xl font-extrabold tracking-tight font-serif">E-STROKE</div>
           <div className="text-xs uppercase tracking-widest text-primary-700 mt-1">
             Early · Effective · Essential
           </div>
+          <div className="text-sm text-primary-700 mt-3">
+            <div>Report ID: <span className="font-mono">{id}</span></div>
+            <div>Data: {fmt(createdAt)}</div>
+          </div>
         </div>
-        <div className="text-right text-sm text-primary-700">
-          <div>Report ID: <span className="font-mono">{id}</span></div>
-          <div>Data: {fmt(createdAt)}</div>
-        </div>
+        {qrDataUrl && (
+          <div className="text-right">
+            <img src={qrDataUrl} alt="QR code valutazione" className="w-24 h-24" />
+            <div className="text-[9px] uppercase tracking-widest text-primary-700 mt-1">Scansiona per aprire</div>
+          </div>
+        )}
       </header>
 
       <section className="mb-6">

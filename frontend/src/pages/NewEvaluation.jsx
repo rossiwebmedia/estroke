@@ -4,6 +4,7 @@ import PatientForm from '../components/PatientForm.jsx';
 import ScoreCalculator from '../components/ScoreCalculator.jsx';
 import EvaluationSummary from '../components/EvaluationSummary.jsx';
 import OnsetTimer from '../components/OnsetTimer.jsx';
+import VoiceInputButton from '../components/VoiceInputButton.jsx';
 import { SYMPTOM_FIELDS, decisionEngine } from '../lib/decisionEngine.js';
 import { useOperatorGeolocation } from '../lib/useGeolocation.js';
 import { useDraft } from '../lib/useDraft.js';
@@ -240,7 +241,16 @@ export default function NewEvaluation() {
 
           {step === 2 && (
             <div className="card p-5">
-              <label className="label">Note dell'operatore (opzionale)</label>
+              <div className="flex items-start justify-between gap-3">
+                <label className="label">Note dell'operatore (opzionale)</label>
+                <VoiceInputButton
+                  onAppend={(text) => {
+                    const prev = data.notes || '';
+                    const sep = prev && !prev.endsWith(' ') ? ' ' : '';
+                    setData({ ...data, notes: (prev + sep + text).slice(0, 1000) });
+                  }}
+                />
+              </div>
               <textarea
                 className="input min-h-[100px]"
                 maxLength={1000}

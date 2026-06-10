@@ -14,9 +14,48 @@ body {
   @apply bg-surface text-primary-900 font-sans antialiased;
 }
 
+/* Dark mode: override puntuale dei tre layer più visibili (background generale,
+ * card/surface, testo) tramite data-theme="dark" sull'html. */
+html[data-theme="dark"] body {
+  background-color: #0B1626;
+  color: #E6ECF3;
+}
+html[data-theme="dark"] .card {
+  background-color: #11243D;
+  border-color: #1B3354;
+}
+html[data-theme="dark"] .input,
+html[data-theme="dark"] textarea.input,
+html[data-theme="dark"] select.input {
+  background-color: #0B1626;
+  border-color: #1B3354;
+  color: #E6ECF3;
+}
+html[data-theme="dark"] .btn-secondary {
+  background-color: #11243D;
+  color: #E6ECF3;
+  border-color: #1B3354;
+}
+html[data-theme="dark"] .btn-ghost {
+  color: #E6ECF3;
+}
+html[data-theme="dark"] header.bg-white,
+html[data-theme="dark"] aside,
+html[data-theme="dark"] nav,
+html[data-theme="dark"] .bg-white {
+  background-color: #11243D;
+}
+html[data-theme="dark"] .text-primary-900 { color: #E6ECF3; }
+html[data-theme="dark"] .text-primary-700 { color: #C2D0E0; }
+html[data-theme="dark"] .text-primary    { color: #E6ECF3; }
+html[data-theme="dark"] .border-primary-50  { border-color: #1B3354; }
+html[data-theme="dark"] .border-primary-100 { border-color: #28456E; }
+html[data-theme="dark"] .bg-primary-50      { background-color: #1B3354; }
+html[data-theme="dark"] .bg-surface         { background-color: #0B1626; }
+
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 font-semibold transition focus:outline-none focus:ring-2 focus:ring-offset-2;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 font-semibold transition focus:outline-none focus:ring-2 focus:ring-offset-2 min-h-[48px];
   }
   .btn-primary {
     @apply btn bg-accent text-white hover:bg-accent-600 focus:ring-accent;

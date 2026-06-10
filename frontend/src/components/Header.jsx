@@ -1,11 +1,13 @@
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { IconLogout, IconBrain } from './icons.jsx';
+import { IconLogout, IconBrain, IconSun, IconMoon } from './icons.jsx';
 import { clearRole, getRole } from '../lib/api.js';
+import { useTheme } from '../lib/useTheme.js';
 
 export default function Header() {
   const navigate = useNavigate();
   const role = getRole();
+  const { theme, toggleTheme } = useTheme();
 
   function logout() {
     clearRole();
@@ -30,6 +32,9 @@ export default function Header() {
             <span className="font-medium">{role}</span>
           </div>
         )}
+        <button onClick={toggleTheme} className="btn-ghost text-sm py-2 px-3" aria-label={theme === 'dark' ? 'Passa a tema chiaro' : 'Passa a tema scuro'} title={theme === 'dark' ? 'Tema chiaro' : 'Tema scuro'}>
+          {theme === 'dark' ? <IconSun className="w-4 h-4" /> : <IconMoon className="w-4 h-4" />}
+        </button>
         <button onClick={logout} className="btn-ghost text-sm py-2 px-3" aria-label="Esci">
           <IconLogout className="w-4 h-4" />
           <span className="hidden sm:inline">Esci</span>

@@ -42,7 +42,7 @@ function SymptomCard({ field, selected, onSelect }) {
               key={opt}
               type="button"
               onClick={() => onSelect(opt)}
-              className={`px-3 py-3 rounded-lg border text-sm font-medium transition text-left ${
+              className={`px-3 py-4 min-h-[64px] rounded-lg border text-sm font-medium transition text-left ${
                 isSelected
                   ? 'border-accent bg-accent text-white shadow-sm'
                   : 'border-primary-100 bg-white text-primary-900 hover:border-accent hover:bg-accent-50'
