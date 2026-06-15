@@ -48,7 +48,7 @@ export default function EvaluationTable({ items, onDelete }) {
               <th className="px-4 py-3 font-semibold">ID intervento</th>
               <th className="px-4 py-3 font-semibold">Data</th>
               <th className="px-4 py-3 font-semibold">Paziente</th>
-              <th className="px-4 py-3 font-semibold">iStroke</th>
+              <th className="px-4 py-3 font-semibold">Estroke</th>
               <th className="px-4 py-3 font-semibold">Rischio</th>
               <th className="px-4 py-3 font-semibold">Destinazione</th>
               <th className="px-4 py-3 font-semibold">Stato</th>

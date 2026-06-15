@@ -293,7 +293,7 @@ export default function NewEvaluation() {
           <div className="card p-5">
             <div className="text-xs uppercase tracking-widest text-primary-700">Anteprima live</div>
             <div className="mt-2 text-5xl font-extrabold text-primary-900">{preview.score}</div>
-            <div className="text-sm text-primary-700">iStroke Score Demo</div>
+            <div className="text-sm text-primary-700">Estroke Score Demo</div>
 
             <div className="mt-4">
               <div className="text-xs uppercase tracking-widest text-primary-700">Suggerimento</div>

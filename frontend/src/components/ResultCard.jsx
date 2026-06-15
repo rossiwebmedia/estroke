@@ -40,7 +40,7 @@ export default function ResultCard({ result }) {
           </div>
         </div>
         <div className="text-right">
-          <div className="text-xs uppercase tracking-widest opacity-80">iStroke Score Demo</div>
+          <div className="text-xs uppercase tracking-widest opacity-80">Estroke Score Demo</div>
           <div className="text-5xl font-extrabold mt-1 leading-none">{result.score}</div>
         </div>
       </div>

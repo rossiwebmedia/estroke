@@ -1,5 +1,5 @@
 // E-STROKE decision engine — logica del prototipo (NON clinica).
-// Calcola iStroke Score Demo a partire da 7 parametri sintomi
+// Calcola Estroke Score Demo a partire da 7 parametri sintomi
 // e propone HUB / SPOKE / VALUTAZIONE_CLINICA secondo le regole
 // fornite dal cliente nella presentazione (slide 13).
 
@@ -46,12 +46,12 @@ export function decisionEngine(input = {}) {
     if (nearHub) {
       suggestedDestination = 'SPOKE';
       rationale =
-        `Punteggio iStroke ${score} (< 200) compatibile con NIHSS 4-5 e probabilità LVO stimata ≤ 40%. ` +
+        `Punteggio Estroke ${score} (< 200) compatibile con NIHSS 4-5 e probabilità LVO stimata ≤ 40%. ` +
         `Il centro HUB è raggiungibile entro 60 min o 80 km: si suggerisce trasporto al centro SPOKE di prossimità.`;
     } else {
       suggestedDestination = 'HUB';
       rationale =
-        `Punteggio iStroke ${score} (< 200) ma il centro HUB dista oltre 60 min / 80 km. ` +
+        `Punteggio Estroke ${score} (< 200) ma il centro HUB dista oltre 60 min / 80 km. ` +
         `In presenza di sintomi anche moderati e logistica sfavorevole si suggerisce comunque trasporto diretto al centro HUB.`;
     }
   } else if (score < 225) {
@@ -61,12 +61,12 @@ export function decisionEngine(input = {}) {
     if (compatible) {
       suggestedDestination = 'HUB';
       rationale =
-        `Punteggio iStroke ${score} (200-224) in fascia intermedia. ` +
+        `Punteggio Estroke ${score} (200-224) in fascia intermedia. ` +
         `Tempi verso HUB compatibili: si suggerisce trasporto al centro HUB per valutazione neurovascolare avanzata.`;
     } else {
       suggestedDestination = 'VALUTAZIONE_CLINICA';
       rationale =
-        `Punteggio iStroke ${score} (200-224) in fascia intermedia con tempi verso HUB sfavorevoli (> 90 min). ` +
+        `Punteggio Estroke ${score} (200-224) in fascia intermedia con tempi verso HUB sfavorevoli (> 90 min). ` +
         `È necessaria una valutazione clinica congiunta con il neurologo di centrale per decidere la destinazione.`;
     }
   } else {
@@ -74,7 +74,7 @@ export function decisionEngine(input = {}) {
     lvoEstimate = '50-60%';
     suggestedDestination = 'HUB';
     rationale =
-      `Punteggio iStroke ${score} (≥ 225) compatibile con NIHSS 6-8 e probabilità LVO stimata 50-60%. ` +
+      `Punteggio Estroke ${score} (≥ 225) compatibile con NIHSS 6-8 e probabilità LVO stimata 50-60%. ` +
       `Trasporto diretto al centro HUB per possibile trombectomia meccanica.`;
   }
 

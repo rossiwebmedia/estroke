@@ -2,7 +2,7 @@ import React from 'react';
 
 const STEPS = [
   { title: 'Valutazione sul posto',    desc: 'Operatore 118 / equipe di soccorso' },
-  { title: 'Calcolo iStroke',           desc: 'Scala sintomi semplificata' },
+  { title: 'Calcolo Estroke',           desc: 'Scala sintomi semplificata' },
   { title: 'Invio verso centro',        desc: 'HUB o SPOKE' },
   { title: 'Presa in carico',           desc: 'Imaging e trattamento' },
 ];

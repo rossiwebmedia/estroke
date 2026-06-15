@@ -86,10 +86,10 @@ export function decisionEngine(input = {}) {
       (Number.isFinite(hubDist) && hubDist <= 80);
     if (nearHub) {
       suggestedDestination = 'SPOKE';
-      rationale = `Punteggio iStroke ${score} (< 200) compatibile con NIHSS 4-5 e probabilità LVO stimata ≤ 40%. Il centro HUB è raggiungibile entro 60 min o 80 km: si suggerisce trasporto al centro SPOKE di prossimità.`;
+      rationale = `Punteggio Estroke ${score} (< 200) compatibile con NIHSS 4-5 e probabilità LVO stimata ≤ 40%. Il centro HUB è raggiungibile entro 60 min o 80 km: si suggerisce trasporto al centro SPOKE di prossimità.`;
     } else {
       suggestedDestination = 'HUB';
-      rationale = `Punteggio iStroke ${score} (< 200) ma il centro HUB dista oltre 60 min / 80 km. In presenza di sintomi anche moderati e logistica sfavorevole si suggerisce comunque trasporto diretto al centro HUB.`;
+      rationale = `Punteggio Estroke ${score} (< 200) ma il centro HUB dista oltre 60 min / 80 km. In presenza di sintomi anche moderati e logistica sfavorevole si suggerisce comunque trasporto diretto al centro HUB.`;
     }
   } else if (score < 225) {
     riskClass = 'intermedio';
@@ -97,16 +97,16 @@ export function decisionEngine(input = {}) {
     const compatible = !Number.isFinite(hubTime) || hubTime <= 90;
     if (compatible) {
       suggestedDestination = 'HUB';
-      rationale = `Punteggio iStroke ${score} (200-224) in fascia intermedia. Tempi verso HUB compatibili: si suggerisce trasporto al centro HUB per valutazione neurovascolare avanzata.`;
+      rationale = `Punteggio Estroke ${score} (200-224) in fascia intermedia. Tempi verso HUB compatibili: si suggerisce trasporto al centro HUB per valutazione neurovascolare avanzata.`;
     } else {
       suggestedDestination = 'VALUTAZIONE_CLINICA';
-      rationale = `Punteggio iStroke ${score} (200-224) in fascia intermedia con tempi verso HUB sfavorevoli (> 90 min). È necessaria una valutazione clinica congiunta con il neurologo di centrale per decidere la destinazione.`;
+      rationale = `Punteggio Estroke ${score} (200-224) in fascia intermedia con tempi verso HUB sfavorevoli (> 90 min). È necessaria una valutazione clinica congiunta con il neurologo di centrale per decidere la destinazione.`;
     }
   } else {
     riskClass = 'alto';
     lvoEstimate = '50-60%';
     suggestedDestination = 'HUB';
-    rationale = `Punteggio iStroke ${score} (≥ 225) compatibile con NIHSS 6-8 e probabilità LVO stimata 50-60%. Trasporto diretto al centro HUB per possibile trombectomia meccanica.`;
+    rationale = `Punteggio Estroke ${score} (≥ 225) compatibile con NIHSS 6-8 e probabilità LVO stimata 50-60%. Trasporto diretto al centro HUB per possibile trombectomia meccanica.`;
   }
 
   const warnings = [];

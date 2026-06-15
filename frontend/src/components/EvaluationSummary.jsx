@@ -56,7 +56,7 @@ export default function EvaluationSummary({ data, onEditPaziente, onEditSintomi,
             </div>
           </div>
           <div className="text-right">
-            <div className="text-xs uppercase tracking-widest opacity-80">iStroke Score</div>
+            <div className="text-xs uppercase tracking-widest opacity-80">Estroke Score</div>
             <div className="text-5xl font-extrabold leading-none mt-1">{preview.score}</div>
           </div>
         </div>
@@ -78,7 +78,7 @@ export default function EvaluationSummary({ data, onEditPaziente, onEditSintomi,
         <Row k="Ultima volta visto bene" v={data.lastSeenWell || '—'} />
       </Section>
 
-      <Section title="Scala sintomi · iStroke" onEdit={onEditSintomi}>
+      <Section title="Scala sintomi · Estroke" onEdit={onEditSintomi}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
           {SYMPTOM_FIELDS.map((f) => {
             const val = Number(data.symptoms?.[f.key]) || 0;

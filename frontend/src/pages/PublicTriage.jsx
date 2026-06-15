@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import BeFastQuiz from '../components/BeFastQuiz.jsx';
 import EmergencyCallCard from '../components/EmergencyCallCard.jsx';
-import { IconArrowLeft, IconBrain, IconAlert, IconArrowRight } from '../components/icons.jsx';
+import { IconArrowLeft, IconBrain, IconAlert, IconArrowRight, IconPhone } from '../components/icons.jsx';
 
 export default function PublicTriage() {
   // phase: 'intro' | 'quiz' | 'result'
@@ -44,20 +44,25 @@ export default function PublicTriage() {
             <strong> BE-FAST</strong>. Non viene salvato nessun dato personale.
           </p>
 
-          <div className="grid grid-cols-5 gap-2 mt-7">
+          <ul className="mt-7 space-y-2">
             {[
-              ['B', 'Equilibrio'],
-              ['E', 'Vista'],
-              ['F', 'Viso'],
-              ['A', 'Braccia'],
-              ['S', 'Parola'],
-            ].map(([l, t]) => (
-              <div key={l} className="rounded-xl bg-white border border-primary-50 p-3 text-center shadow-card">
-                <div className="text-2xl font-extrabold text-accent">{l}</div>
-                <div className="text-[11px] uppercase tracking-wider text-primary-700 mt-1">{t}</div>
-              </div>
+              ['B', 'Equilibrio', 'perso improvvisamente'],
+              ['E', 'Vista',      'calo o sdoppiamento improvviso'],
+              ['F', 'Viso',       'bocca o palpebra cadente'],
+              ['A', 'Braccia',    'un braccio non si solleva'],
+              ['S', 'Parola',     'difficoltà a parlare'],
+            ].map(([l, t, hint]) => (
+              <li key={l} className="rounded-xl bg-white border border-primary-50 px-4 py-3 shadow-card flex items-center gap-4">
+                <div className="w-12 h-12 shrink-0 rounded-xl bg-accent-50 text-accent flex items-center justify-center text-3xl font-extrabold">
+                  {l}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-primary-900">{t}</div>
+                  <div className="text-xs text-primary-700">{hint}</div>
+                </div>
+              </li>
             ))}
-          </div>
+          </ul>
 
           <button
             onClick={() => setPhase('quiz')}
@@ -68,10 +73,14 @@ export default function PublicTriage() {
 
           <a
             href="tel:118"
-            className="block text-center mt-4 text-danger font-bold underline underline-offset-2"
+            className="mt-4 w-full rounded-xl bg-danger text-white font-extrabold text-lg px-5 py-4 flex items-center justify-center gap-3 shadow-card hover:opacity-95 active:scale-[0.99] transition"
           >
-            Se la situazione è già grave, chiama subito il 118
+            <IconPhone className="w-6 h-6" />
+            Chiama subito il 118
           </a>
+          <div className="text-center text-xs text-primary-700 mt-2">
+            Tocca il bottone per chiamare se la situazione è già grave.
+          </div>
         </div>
       )}
 

@@ -74,11 +74,11 @@ export default function PrintableReport({ evaluation }) {
 
       <section className="mb-6">
         <h2 className="text-base font-bold uppercase tracking-wider text-primary-700 mb-2">
-          Esito iStroke
+          Esito Estroke
         </h2>
         <div className="border-2 border-primary rounded-lg p-4">
           <Grid items={[
-            ['iStroke Score', result.score],
+            ['Estroke Score', result.score],
             ['Fascia di rischio', result.riskClass],
             ['LVO stimata', result.lvoEstimate],
             ['Destinazione suggerita', destLabel[result.suggestedDestination] || result.suggestedDestination],
