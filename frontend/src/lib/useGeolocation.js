@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { HOSPITALS, CITY_COORDINATES } from '../data/hospitals.js';
+import { OPERATOR_NETWORK, CITY_COORDINATES } from '../data/hospitals.js';
 import { nearestHospitals, haversineKm } from './geo.js';
 
 // Hook che, una volta sola, chiede la posizione dell'operatore al browser
 // e suggerisce:
 //   - il comune più vicino (dal dataset CITY_COORDINATES)
-//   - il PIÙ vicino HUB e il PIÙ vicino SPOKE (dal dataset HOSPITALS)
-//     con km in linea d'aria e stima minuti di guida
+//   - il PIÙ vicino HUB e il PIÙ vicino SPOKE della rete operatore
+//     (OPERATOR_NETWORK: i 4 centri indicati dal cliente) con km in linea
+//     d'aria e stima minuti di guida
 //
 // Niente fallback rumoroso: in caso di permesso negato, ritorna { status: 'denied' }
 // e il chiamante mantiene il comportamento manuale.
@@ -32,10 +33,10 @@ export function useOperatorGeolocation({ enabled = true } = {}) {
           .sort((a, b) => a.distance - b.distance);
         const city = cityRanked[0] || null;
 
-        // Suggerimento HUB / SPOKE (i 5 più vicini totali, ma poi separo per tipo)
-        const all = nearestHospitals(point, HOSPITALS, HOSPITALS.length);
+        // Suggerimento HUB / SPOKE all'interno della rete operatore.
+        const all = nearestHospitals(point, OPERATOR_NETWORK, OPERATOR_NETWORK.length);
         const hub   = all.find((h) => h.type === 'HUB')   || null;
-        const spoke = all.find((h) => h.type === 'SPOKE') || all.find((h) => h.type === 'PS') || null;
+        const spoke = all.find((h) => h.type === 'SPOKE') || null;
 
         setState({
           status: 'ok',
@@ -43,6 +44,7 @@ export function useOperatorGeolocation({ enabled = true } = {}) {
           city,
           hub,
           spoke,
+          network: all,
         });
       },
       (err) => {

@@ -19,6 +19,7 @@ const SEEDS = [
       lowerLimbMotorLeft: 15, lowerLimbMotorRight: 0,
       dysarthria: 10, consciousness: 0 },
     notes: 'Paziente collaborante, afasia lieve, deficit emisoma sinistro. Familiare presente sul posto.',
+    anticoagulant: 'NO', autonomous: 'SI',
     operatorRole: 'Operatore 118',
     ageOffsetDays: 0.05,
   },
@@ -33,6 +34,7 @@ const SEEDS = [
       lowerLimbMotorLeft: 15, lowerLimbMotorRight: 15,
       dysarthria: 20, consciousness: 20 },
     notes: 'Esordio noto, deficit bilaterale. PA 180/100, FC 92 ritmica. Cannula 18G in vena.',
+    anticoagulant: 'NAO', autonomous: 'SI',
     operatorRole: 'Operatore 118',
     ageOffsetDays: 0.4,
   },
@@ -47,6 +49,7 @@ const SEEDS = [
       lowerLimbMotorLeft: 15, lowerLimbMotorRight: 15,
       dysarthria: 20, consciousness: 20 },
     notes: 'Quadro severo, deficit globale. Caregiver riferisce esordio improvviso 3h fa.',
+    anticoagulant: 'TAO', autonomous: 'NO',
     operatorRole: 'Operatore 118',
     ageOffsetDays: 1.2,
   },
@@ -118,7 +121,10 @@ export async function ensureSeed(store) {
   let n = 0;
   for (let i = 0; i < SEEDS.length; i++) {
     const s = SEEDS[i];
-    const { ageOffsetDays, ...input } = s;
+    const { ageOffsetDays, ...rest } = s;
+    // I campi di anamnesi rapida sono stati aggiunti nella rev. 2: i seed che
+    // non li specificano restano "non noti", come per una scheda compilata prima.
+    const input = { anticoagulant: 'NON_NOTO', autonomous: 'NON_NOTO', ...rest };
     const result = decisionEngine(input);
     const createdAt = new Date(Date.now() - ageOffsetDays * DAY).toISOString();
     const status = STATUS_MIX[i] || 'created';
