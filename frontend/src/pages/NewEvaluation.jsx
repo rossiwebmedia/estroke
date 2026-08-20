@@ -4,7 +4,8 @@ import PatientForm from '../components/PatientForm.jsx';
 import ScoreCalculator from '../components/ScoreCalculator.jsx';
 import EvaluationSummary from '../components/EvaluationSummary.jsx';
 import OnsetTimer from '../components/OnsetTimer.jsx';
-import VoiceInputButton from '../components/VoiceInputButton.jsx';
+import OperatorNotes from '../components/OperatorNotes.jsx';
+import { UNKNOWN_ONSET } from '../components/QuickChipLastSeen.jsx';
 import { SYMPTOM_FIELDS, decisionEngine } from '../lib/decisionEngine.js';
 import { useOperatorGeolocation } from '../lib/useGeolocation.js';
 import { useDraft } from '../lib/useDraft.js';
@@ -25,10 +26,16 @@ const initial = {
   city: '',
   onsetMinutes: '',
   lastSeenWell: '',
+  anticoagulant: 'NON_NOTO',
+  autonomous: 'NON_NOTO',
   hubTimeMin: '',
   hubDistanceKm: '',
   spokeTimeMin: '',
   spokeDistanceKm: '',
+  hubHospitalId: '',
+  hubHospitalName: '',
+  spokeHospitalId: '',
+  spokeHospitalName: '',
   symptoms: emptySymptoms,
   notes: '',
 };
@@ -38,6 +45,15 @@ const destBadge = {
   SPOKE: 'bg-success text-white',
   VALUTAZIONE_CLINICA: 'bg-warning text-white',
 };
+
+// "Esordio non noto" viaggia nel form come sentinella (UNKNOWN_ONSET): non è un
+// numero di minuti e non va convertito in 0, altrimenti un wake-up stroke
+// risulterebbe appena esordito.
+function onsetToNumber(raw) {
+  if (raw === '' || raw === UNKNOWN_ONSET || raw == null) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
 
 export default function NewEvaluation() {
   const [step, setStep] = useState(0);
@@ -77,6 +93,11 @@ export default function NewEvaluation() {
       hubDistanceKm:   d.hubDistanceKm   || (geo.hub   ? String(geo.hub.distanceKm)   : ''),
       spokeTimeMin:    d.spokeTimeMin    || (geo.spoke ? String(geo.spoke.driveMinutes) : ''),
       spokeDistanceKm: d.spokeDistanceKm || (geo.spoke ? String(geo.spoke.distanceKm)   : ''),
+      // Identità dei centri: serve al Result per la chiamata diretta al neurologo.
+      hubHospitalId:     d.hubHospitalId     || geo.hub?.id     || '',
+      hubHospitalName:   d.hubHospitalName   || geo.hub?.name   || '',
+      spokeHospitalId:   d.spokeHospitalId   || geo.spoke?.id   || '',
+      spokeHospitalName: d.spokeHospitalName || geo.spoke?.name || '',
     }));
     setGeoApplied(true);
   }, [geo.status, geo.city, geo.hub, geo.spoke, geoApplied]);
@@ -86,7 +107,8 @@ export default function NewEvaluation() {
     ...data,
     hubTimeMin: Number(data.hubTimeMin),
     hubDistanceKm: Number(data.hubDistanceKm),
-    onsetMinutes: Number(data.onsetMinutes),
+    spokeTimeMin: data.spokeTimeMin === '' ? null : Number(data.spokeTimeMin),
+    onsetMinutes: onsetToNumber(data.onsetMinutes),
   }), [data]);
 
   async function submit() {
@@ -96,7 +118,7 @@ export default function NewEvaluation() {
       const body = {
         ...data,
         age: Number(data.age),
-        onsetMinutes: data.onsetMinutes === '' ? null : Number(data.onsetMinutes),
+        onsetMinutes: onsetToNumber(data.onsetMinutes),
         hubTimeMin: Number(data.hubTimeMin),
         hubDistanceKm: Number(data.hubDistanceKm),
         spokeTimeMin: data.spokeTimeMin === '' ? null : Number(data.spokeTimeMin),
@@ -130,7 +152,8 @@ export default function NewEvaluation() {
     submit();
   }
   function back() {
-    // Indietro dentro la Scala sintomi
+    // Indietro dentro la Scala sintomi. I punteggi già inseriti restano:
+    // per ripartire da zero ci sono i bottoni "Azzera" espliciti.
     if (step === 1 && symptomStep > 0) {
       setSymptomStep(symptomStep - 1);
       return;
@@ -143,28 +166,44 @@ export default function NewEvaluation() {
     }
   }
 
+  // Navigazione libera fra le sezioni (richiesta cliente rev. 2): saltare a uno
+  // step NON azzera nulla, i dati inseriti restano tutti.
+  function goToStep(i, symptomIndex = 0) {
+    setStep(i);
+    setSymptomStep(symptomIndex);
+  }
+
+  function resetAllSymptoms() {
+    setData((d) => ({ ...d, symptoms: { ...emptySymptoms } }));
+  }
+
+  // Campi che il backend rifiuterebbe: li segnaliamo prima del salvataggio,
+  // dato che ora si può arrivare al Riepilogo saltando gli step.
+  const missingRequired = [];
+  if (data.age === '' || !(Number(data.age) >= 0)) missingRequired.push({ label: 'Età del paziente', step: 0 });
+  if (data.hubTimeMin === '')    missingRequired.push({ label: 'Tempo verso HUB', step: 2 });
+  if (data.hubDistanceKm === '') missingRequired.push({ label: 'Distanza verso HUB', step: 2 });
+
   const canProceed = (() => {
     if (step === 0) return data.age !== '' && Number(data.age) >= 0;
     if (step === 1) return true; // sintomi: tutti i campi hanno default 0
     if (step === 2) return data.hubTimeMin !== '' && data.hubDistanceKm !== '';
-    return true;
+    return missingRequired.length === 0; // Riepilogo: salvataggio solo se completo
   })();
-
-  const isLastStep =
-    step === STEPS.length - 1 ||
-    // anche l'ultima schermata della Scala sintomi NON è l'ultima dell'intero form
-    false;
 
   return (
     <div>
       <OnsetTimer
-        onsetMinutes={data.onsetMinutes}
+        onsetMinutes={onsetToNumber(data.onsetMinutes)}
         lastSeenWell={data.lastSeenWell}
         sticky
       />
 
       <h1 className="text-2xl lg:text-3xl font-extrabold text-primary-900 tracking-tight mt-2">Nuova valutazione</h1>
-      <p className="text-primary-700 mt-1">Compila i 4 step. Il punteggio si aggiorna in tempo reale.</p>
+      <p className="text-primary-700 mt-1">
+        Compila i 4 step, oppure tocca una sezione per andarci direttamente.
+        Il punteggio si aggiorna in tempo reale.
+      </p>
 
       {geo.status === 'ok' && !geoDismissed && (
         <div className="mt-3 card border-success-100 bg-success-50 text-primary-900 p-3 flex items-start gap-3 text-sm">
@@ -206,7 +245,7 @@ export default function NewEvaluation() {
 
       <div className="grid lg:grid-cols-[1fr_320px] gap-6 mt-4">
         <div className="space-y-4">
-          <Stepper step={step} />
+          <Stepper step={step} onGo={goToStep} />
           {step === 0 && (
             <div className="card p-5 lg:p-6">
               <PatientForm value={data} onChange={setData} step="patient" />
@@ -215,7 +254,13 @@ export default function NewEvaluation() {
 
           {step === 1 && (
             <div className="space-y-3">
-              <SymptomProgress current={symptomStep} total={TOTAL_SYMPTOMS} />
+              <SymptomProgress
+                current={symptomStep}
+                total={TOTAL_SYMPTOMS}
+                symptoms={data.symptoms}
+                onGo={setSymptomStep}
+                onResetAll={resetAllSymptoms}
+              />
               <ScoreCalculator
                 value={data.symptoms}
                 onChange={(symptoms) => setData({ ...data, symptoms })}
@@ -233,35 +278,19 @@ export default function NewEvaluation() {
           {step === 3 && (
             <EvaluationSummary
               data={data}
-              onEditPaziente={()  => { setStep(0); setSymptomStep(0); }}
-              onEditSintomi={()   => { setStep(1); setSymptomStep(0); }}
-              onEditLogistica={() => { setStep(2); }}
+              missingRequired={missingRequired}
+              onEditPaziente={()  => goToStep(0)}
+              onEditSintomi={()   => goToStep(1)}
+              onEditLogistica={() => goToStep(2)}
             />
           )}
 
-          {step === 2 && (
-            <div className="card p-5">
-              <div className="flex items-start justify-between gap-3">
-                <label className="label">Note dell'operatore (opzionale)</label>
-                <VoiceInputButton
-                  onAppend={(text) => {
-                    const prev = data.notes || '';
-                    const sep = prev && !prev.endsWith(' ') ? ' ' : '';
-                    setData({ ...data, notes: (prev + sep + text).slice(0, 1000) });
-                  }}
-                />
-              </div>
-              <textarea
-                className="input min-h-[100px]"
-                maxLength={1000}
-                value={data.notes}
-                onChange={(e) => setData({ ...data, notes: e.target.value })}
-                placeholder="Es. paziente collaborante, deficit emisoma sx, PA 170/95, parente presente sul posto…"
-              />
-              <div className="text-[11px] text-primary-700/70 mt-1.5 text-right">
-                {data.notes.length}/1000
-              </div>
-            </div>
+          {/* Commenti operatore: disponibili sia in Logistica sia nel Riepilogo. */}
+          {(step === 2 || step === 3) && (
+            <OperatorNotes
+              value={data.notes}
+              onChange={(notes) => setData({ ...data, notes })}
+            />
           )}
 
           {error && <div className="card p-4 text-danger border-danger-100 whitespace-pre-wrap">{error}</div>}
@@ -306,6 +335,14 @@ export default function NewEvaluation() {
               <div className="text-sm text-primary-700">LVO stimata: <strong>{preview.lvoEstimate}</strong></div>
             </div>
 
+            {preview.windowRule?.applied && (
+              <div className="mt-3 text-xs bg-danger-50 border border-danger-100 text-danger rounded-lg p-3">
+                <strong>Regola 4h attiva.</strong> Esordio + percorrenza ={' '}
+                {preview.windowRule.totalMinutes} min con punteggio &gt; 80:
+                destinazione forzata a HUB.
+              </div>
+            )}
+
             {preview.warnings.length > 0 && (
               <ul className="mt-3 text-xs text-warning bg-warning-50 rounded-lg p-3 space-y-1">
                 {preview.warnings.map((w, i) => <li key={i}>• {w}</li>)}
@@ -322,9 +359,12 @@ export default function NewEvaluation() {
   );
 }
 
-function SymptomProgress({ current, total }) {
+// Barra di avanzamento della scala + navigazione diretta al singolo sintomo.
+function SymptomProgress({ current, total, symptoms, onGo, onResetAll }) {
   const field = SYMPTOM_FIELDS[current];
   const pct = ((current + 1) / total) * 100;
+  const scored = SYMPTOM_FIELDS.filter((f) => Number(symptoms?.[f.key]) > 0).length;
+
   return (
     <div className="card p-4">
       <div className="flex items-baseline justify-between gap-3 mb-2">
@@ -341,23 +381,73 @@ function SymptomProgress({ current, total }) {
           style={{ width: `${pct}%` }}
         />
       </div>
+
+      {/* Salto diretto a un sintomo qualsiasi, senza azzerare i punteggi. */}
+      <div className="flex flex-wrap gap-1.5 mt-3">
+        {SYMPTOM_FIELDS.map((f, i) => {
+          const isCurrent = i === current;
+          const hasScore = Number(symptoms?.[f.key]) > 0;
+          return (
+            <button
+              key={f.key}
+              type="button"
+              onClick={() => onGo(i)}
+              title={`${f.label}${f.side ? ` ${f.side}` : ''}`}
+              aria-label={`Vai al sintomo ${i + 1}: ${f.label}${f.side ? ` ${f.side}` : ''}`}
+              className={`w-9 h-9 rounded-lg text-xs font-bold border transition ${
+                isCurrent
+                  ? 'bg-accent text-white border-accent'
+                  : hasScore
+                    ? 'bg-warning-50 text-warning border-warning-100'
+                    : 'bg-white text-primary-700 border-primary-100 hover:border-accent'
+              }`}
+            >
+              {i + 1}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-primary-50">
+        <div className="text-xs text-primary-700">
+          {scored === 0
+            ? 'Nessun sintomo con punteggio.'
+            : `${scored} sintom${scored === 1 ? 'o' : 'i'} con punteggio > 0.`}
+        </div>
+        {scored > 0 && (
+          <button
+            type="button"
+            onClick={onResetAll}
+            className="text-xs text-primary-700 hover:text-danger underline decoration-dotted shrink-0"
+          >
+            Azzera tutta la scala
+          </button>
+        )}
+      </div>
     </div>
   );
 }
 
-function Stepper({ step }) {
+function Stepper({ step, onGo }) {
   return (
     <ol className="grid grid-cols-2 md:grid-cols-4 gap-2">
       {STEPS.map((s, i) => {
         const state = i < step ? 'done' : i === step ? 'active' : 'todo';
         return (
-          <li key={s} className={`rounded-xl px-4 py-3 border ${
-            state === 'active' ? 'bg-accent text-white border-accent' :
-            state === 'done'   ? 'bg-success text-white border-success' :
-                                 'bg-white text-primary-700 border-primary-100'
-          }`}>
-            <div className="text-[10px] uppercase tracking-widest opacity-80">Step {i + 1}</div>
-            <div className="font-bold mt-0.5">{s}</div>
+          <li key={s}>
+            <button
+              type="button"
+              onClick={() => onGo(i)}
+              aria-current={state === 'active' ? 'step' : undefined}
+              className={`w-full text-left rounded-xl px-4 py-3 border transition ${
+                state === 'active' ? 'bg-accent text-white border-accent' :
+                state === 'done'   ? 'bg-success text-white border-success hover:opacity-90' :
+                                     'bg-white text-primary-700 border-primary-100 hover:border-accent'
+              }`}
+            >
+              <div className="text-[10px] uppercase tracking-widest opacity-80">Step {i + 1}</div>
+              <div className="font-bold mt-0.5">{s}</div>
+            </button>
           </li>
         );
       })}

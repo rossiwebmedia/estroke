@@ -1,7 +1,8 @@
 // E-STROKE decision engine — logica del prototipo (NON clinica).
-// Calcola Estroke Score Demo a partire da 7 parametri sintomi
+// Calcola Estroke Score Demo a partire da 9 parametri sintomi
 // e propone HUB / SPOKE / VALUTAZIONE_CLINICA secondo le regole
-// fornite dal cliente nella presentazione (slide 13).
+// fornite dal cliente nella presentazione (slide 13) e nella
+// revisione 2 delle modifiche richieste.
 
 export const SYMPTOM_FIELDS = [
   { key: 'gazeDeviation',         label: 'Deviazione sguardo',            options: [0, 25, 50] },
@@ -14,6 +15,32 @@ export const SYMPTOM_FIELDS = [
   { key: 'dysarthria',            label: 'Disartria',                      options: [0, 10, 20] },
   { key: 'consciousness',         label: 'Alterazione coscienza',          options: [0, 20, 40] },
 ];
+
+// Anamnesi rapida raccolta nello step Paziente (richiesta cliente rev. 2).
+export const ANTICOAGULANT_OPTIONS = ['NO', 'NAO', 'TAO', 'NON_NOTO'];
+export const ANTICOAGULANT_LABELS = {
+  NO:       'No',
+  NAO:      'Sì — NAO',
+  TAO:      'Sì — TAO',
+  NON_NOTO: 'Non noto',
+};
+
+export const AUTONOMY_OPTIONS = ['SI', 'NO', 'NON_NOTO'];
+export const AUTONOMY_LABELS = {
+  SI:       'Sì, autonomo',
+  NO:       'No, non autonomo',
+  NON_NOTO: 'Non noto',
+};
+
+// Regola "finestra trombolitica chiusa" (richiesta cliente rev. 2):
+// punteggio oltre 80 + somma fra tempo di insorgenza sintomi e tempo di
+// percorrenza verso l'ospedale superiore a 4h ⇒ destinazione HUB.
+// Il tempo di percorrenza usato è quello verso lo SPOKE (centro di prossimità
+// dove si farebbe la trombolisi); se non compilato si usa quello verso l'HUB.
+export const WINDOW_RULE = {
+  scoreOver: 80,
+  totalMinutesOver: 240, // 4h
+};
 
 const DISCLAIMER = 'La decisione finale resta in carico al personale sanitario qualificato.';
 
@@ -28,9 +55,10 @@ export function decisionEngine(input = {}) {
   const symptoms = input.symptoms || {};
   const score = calcScore(symptoms);
 
-  const hubTime  = Number(input.hubTimeMin);
-  const hubDist  = Number(input.hubDistanceKm);
-  const onsetMin = Number(input.onsetMinutes);
+  const hubTime   = Number(input.hubTimeMin);
+  const hubDist   = Number(input.hubDistanceKm);
+  const spokeTime = Number(input.spokeTimeMin);
+  const onsetMin  = Number(input.onsetMinutes);
 
   let riskClass;
   let lvoEstimate;
@@ -78,6 +106,29 @@ export function decisionEngine(input = {}) {
       `Trasporto diretto al centro HUB per possibile trombectomia meccanica.`;
   }
 
+  // --------------------------------------------------------------------------
+  // Regola finestra chiusa → escalation a HUB.
+  // Può solo ALZARE la destinazione verso l'HUB, mai abbassarla.
+  // --------------------------------------------------------------------------
+  const travelMin = Number.isFinite(spokeTime) ? spokeTime : hubTime;
+  const totalMin =
+    Number.isFinite(onsetMin) && Number.isFinite(travelMin) ? onsetMin + travelMin : null;
+  const windowRuleApplied =
+    score > WINDOW_RULE.scoreOver &&
+    totalMin !== null &&
+    totalMin > WINDOW_RULE.totalMinutesOver &&
+    suggestedDestination !== 'HUB';
+
+  if (windowRuleApplied) {
+    const previous = suggestedDestination;
+    suggestedDestination = 'HUB';
+    rationale =
+      `Punteggio Estroke ${score} (> ${WINDOW_RULE.scoreOver}) con tempo totale stimato ${totalMin} min ` +
+      `(esordio ${onsetMin} min + ${travelMin} min di percorrenza) superiore a 4h: la finestra trombolitica ` +
+      `è di fatto chiusa, quindi il trattamento di prossimità non porterebbe beneficio. ` +
+      `Destinazione modificata da ${previous} a HUB per possibile trombectomia meccanica.`;
+  }
+
   const warnings = [];
   if (Number.isFinite(onsetMin) && onsetMin > 270) {
     warnings.push(
@@ -86,6 +137,18 @@ export function decisionEngine(input = {}) {
   }
   if (!input.lastSeenWell) {
     warnings.push('Orario "ultima volta visto bene" non specificato: dato critico per la finestra trombolitica.');
+  }
+  if (windowRuleApplied) {
+    warnings.push(
+      `Somma esordio + percorrenza (${totalMin} min) oltre le 4h con punteggio > ${WINDOW_RULE.scoreOver}: ` +
+      `indicazione automatica al centro HUB.`
+    );
+  }
+  if (input.anticoagulant === 'NAO' || input.anticoagulant === 'TAO') {
+    warnings.push(
+      `Paziente in terapia anticoagulante (${input.anticoagulant}): possibile controindicazione alla trombolisi. ` +
+      `Segnalare al centro ricevente e valutare il percorso trombectomia.`
+    );
   }
   const motor =
     Number(symptoms.upperLimbMotorLeft  || 0) + Number(symptoms.upperLimbMotorRight || 0) +
@@ -106,6 +169,13 @@ export function decisionEngine(input = {}) {
     suggestedDestination,
     rationale,
     warnings,
+    // Tracciabilità della regola cliente: utile in archivio/report per capire
+    // perché un caso a punteggio basso è finito in HUB.
+    windowRule: {
+      applied: windowRuleApplied,
+      totalMinutes: totalMin,
+      travelMinutes: Number.isFinite(travelMin) ? travelMin : null,
+    },
     disclaimer: DISCLAIMER,
   };
 }

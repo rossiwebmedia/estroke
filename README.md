@@ -5,7 +5,7 @@
 
 E-STROKE è un **prototipo dimostrativo** di web app per il supporto decisionale al
 triage pre-ospedaliero del paziente con sospetto ictus. Aiuta operatori 118, medici HUB
-e centrali operative a calcolare rapidamente uno **iStroke Score Demo** e a decidere se
+e centrali operative a calcolare rapidamente uno **Estroke Score Demo** e a decidere se
 indirizzare il paziente verso un centro **HUB** (trombectomia) o **SPOKE** (trombolisi
 di prossimità). Include anche un **triage pubblico BE-FAST** per cittadini/familiari
 che sospettano un ictus, accessibile senza login.
@@ -60,13 +60,13 @@ Nessuna dipendenza nativa, nessuna build complicata.
 
 ## Credenziali demo
 
-Nessuna password. La landing offre due percorsi:
+Nessuna password. La landing offre due percorsi, presentati come due card di pari peso:
 
-1. **Accesso operatori** → seleziona uno dei tre ruoli:
+1. **Controllo rapido sintomi (BE-FAST)** → pubblico, senza login, pensato per cittadini.
+2. **Accesso operatori** → seleziona uno dei tre ruoli:
    - `Operatore 118`
    - `Medico HUB`
    - `Centrale Operativa`
-2. **Controllo rapido sintomi (BE-FAST)** → pubblico, senza login, pensato per cittadini.
 
 Il ruolo selezionato è salvato in `localStorage` (client-side only).
 
@@ -122,7 +122,7 @@ Istroke/
 │   ├── src/
 │   │   ├── routes/evaluations.js    # CRUD valutazioni
 │   │   ├── lib/store.js             # persistenza JSON (write atomico)
-│   │   ├── lib/decisionEngine.js    # regole iStroke + HUB/SPOKE
+│   │   ├── lib/decisionEngine.js    # regole Estroke + HUB/SPOKE
 │   │   └── lib/seed.js              # 7 valutazioni di esempio
 │   └── data/                        # volume Docker
 └── frontend/
@@ -136,13 +136,16 @@ Istroke/
         ├── App.jsx                  # routing
         ├── main.jsx
         ├── index.css
+        ├── data/{hospitals,contacts}.js  # rete ospedali + numeri di telefono
         ├── lib/{api,decisionEngine}.js
         ├── components/
         │   ├── Layout, Sidebar, Header, DisclaimerBanner
         │   ├── DashboardCard, EvaluationTable
-        │   ├── PatientForm, ScoreCalculator
+        │   ├── PatientForm, ScoreCalculator, QuickChipLastSeen
+        │   ├── OnsetTimer, OperatorNotes, VoiceInputButton
         │   ├── ResultCard, DecisionTimeline, PrintableReport
-        │   ├── BeFastQuiz, EmergencyCallCard
+        │   ├── CallActions, TransitActions, HubReviewActions
+        │   ├── BeFastQuiz, EmergencyCallCard, NearestHospitals
         │   └── icons.jsx
         └── pages/
             ├── Landing, Login, PublicTriage
@@ -176,13 +179,17 @@ Esempio `POST` body:
 ```json
 {
   "patientId": "INT-2026-0150",
-  "age": 72, "sex": "M", "city": "Catania",
+  "age": 72, "sex": "M", "city": "Salerno",
   "onsetMinutes": 45, "lastSeenWell": "2026-05-26T14:30",
+  "anticoagulant": "NAO", "autonomous": "SI",
   "hubTimeMin": 35, "hubDistanceKm": 28,
   "spokeTimeMin": 12, "spokeDistanceKm": 8,
+  "hubHospitalId": "sa-ruggi", "hubHospitalName": "AOU San Giovanni di Dio e Ruggi d'Aragona",
+  "spokeHospitalId": "sa-polla", "spokeHospitalName": "Ospedale Luigi Curto",
   "symptoms": {
     "gazeDeviation": 25, "aphasia": 20, "neglect": 0,
-    "upperLimbMotor": 20, "lowerLimbMotor": 15,
+    "upperLimbMotorLeft": 20, "upperLimbMotorRight": 0,
+    "lowerLimbMotorLeft": 15, "lowerLimbMotorRight": 0,
     "dysarthria": 10, "consciousness": 0
   },
   "operatorRole": "Operatore 118"
@@ -199,7 +206,7 @@ Risposta: `201 Created` con `{ id, createdAt, input, result }` dove `result` con
 Implementate in `backend/src/lib/decisionEngine.js` (copia client-side in
 `frontend/src/lib/decisionEngine.js` per l'anteprima live durante il form).
 
-Pesi della scala iStroke Demo (9 parametri, somma massima 260):
+Pesi della scala Estroke Demo (9 parametri, somma massima 260):
 
 | Parametro                              | Valori possibili |
 | -------------------------------------- | ---------------- |
@@ -230,7 +237,45 @@ Destinazione suggerita:
   - altrimenti → **VALUTAZIONE_CLINICA**
 - **score ≥ 225**, rischio alto, LVO 50-60% → **HUB**
 
-Warning automatici: esordio > 4h30, "ultima volta visto bene" non specificato, deficit motorio severo + deviazione sguardo.
+### Regola "finestra chiusa" (escalation a HUB)
+
+Sopra le regole di fascia si applica una regola aggiuntiva richiesta dal cliente:
+
+> **score > 80** **e** (minuti dall'esordio + minuti di percorrenza) **> 240 min (4h)** → **HUB**
+
+Razionale: se il paziente arriverebbe al centro di prossimità oltre le 4h dall'esordio, la
+finestra trombolitica è di fatto chiusa e il trattamento SPOKE non porta beneficio; conviene
+puntare direttamente alla trombectomia in HUB.
+
+Dettagli implementativi:
+
+- Il tempo di percorrenza usato è quello verso lo **SPOKE** (il centro dove si farebbe la
+  trombolisi, cioè l'alternativa all'HUB). Se `spokeTimeMin` non è compilato si usa `hubTimeMin`.
+- La regola può solo **alzare** la destinazione verso HUB, mai abbassarla: agisce su `SPOKE`
+  e su `VALUTAZIONE_CLINICA`, e non tocca i casi già indirizzati a HUB.
+- Se l'esordio è **non noto** la regola non scatta (manca l'addendo): resta però il warning
+  su "ultima volta visto bene" non specificato.
+- Soglie configurabili in `WINDOW_RULE` (`scoreOver: 80`, `totalMinutesOver: 240`).
+- L'esito espone `result.windowRule = { applied, totalMinutes, travelMinutes }` per rendere
+  tracciabile in archivio e sul report perché un caso a punteggio basso è finito in HUB.
+
+Warning automatici: esordio > 4h30, "ultima volta visto bene" non specificato, regola finestra
+chiusa attivata, **paziente in terapia anticoagulante (NAO/TAO)**, deficit motorio severo +
+deviazione sguardo, deficit nettamente asimmetrico.
+
+### Anamnesi rapida
+
+Nello step *Paziente* si raccolgono due informazioni aggiuntive, riportate in riepilogo,
+pagina risultato e report:
+
+| Campo             | Valori                                            |
+| ----------------- | ------------------------------------------------- |
+| `anticoagulant`   | `NO` / `NAO` / `TAO` / `NON_NOTO`                 |
+| `autonomous`      | `SI` / `NO` / `NON_NOTO`                          |
+
+In assenza di risposta esplicita il backend registra `NON_NOTO`: non viene mai assunto un
+default clinicamente rassicurante. La terapia anticoagulante **non modifica** il punteggio né
+la destinazione, ma genera un'avvertenza sulla possibile controindicazione alla trombolisi.
 
 > Per modificare le soglie o i pesi basta editare `backend/src/lib/decisionEngine.js`
 > (e la versione gemella `frontend/src/lib/decisionEngine.js` se vuoi che l'anteprima
@@ -259,13 +304,51 @@ browser. Le stime sono dichiaratamente indicative — la priorità rimane la chi
 
 ---
 
+## Rete ospedaliera dell'operatore e chiamata diretta
+
+La geolocalizzazione dell'**Operatore 118** propone i centri di una rete ristretta
+(`OPERATOR_NETWORK` in `frontend/src/data/hospitals.js`), attualmente i 4 indicati dal cliente:
+
+| Centro                                       | Comune               | Tipo  |
+| -------------------------------------------- | -------------------- | ----- |
+| AOU San Giovanni di Dio e Ruggi d'Aragona    | Salerno              | HUB   |
+| Ospedale Umberto I                           | Nocera Inferiore     | HUB   |
+| Ospedale Luigi Curto                         | Polla                | SPOKE |
+| Ospedale San Luca                            | Vallo della Lucania  | SPOKE |
+
+Per allargare la rete basta aggiungere id a `OPERATOR_NETWORK_IDS`. Il **triage pubblico
+BE-FAST** continua invece a usare tutto il dataset `HOSPITALS` (Sicilia + Campania): a un
+cittadino serve l'ospedale più vicino in assoluto, non quello della rete operatore.
+
+L'ospedale proposto viene salvato nella valutazione (`hubHospitalId/Name`,
+`spokeHospitalId/Name`), così la pagina risultato può mostrare il **centro di riferimento**
+coerente con la destinazione *effettiva* e offrire due bottoni di **chiamata diretta**
+(`tel:`) verso la Centrale Operativa e verso il neurologo di quel centro.
+
+> ⚠️ **I numeri sono di prova.** Sono tutti centralizzati in
+> `frontend/src/data/contacts.js`: è l'unico file da modificare quando arrivano i recapiti
+> reali di centrale e reperibili neurovascolari. Finché `USING_TEST_NUMBERS` è `true`, la
+> pagina risultato mostra un avviso esplicito accanto ai bottoni.
+
+---
+
 ## Flusso utente
 
-1. Apri http://localhost:3000 → **Landing** con due CTA.
-2. Clic su *Avvia valutazione* → **Login ruolo**.
+1. Apri http://localhost:3000 → **Landing** con due CTA di pari peso: *Controllo rapido
+   sintomi* (cittadini) e *Accesso operatori* (personale sanitario).
+2. Clic su *Accesso operatori* → **Login ruolo**.
 3. **Dashboard** con KPI e ultime valutazioni (già popolate da 7 casi seed).
-4. *Nuova valutazione* → form a 3 step (Paziente → Scala sintomi → Logistica + Note operatore) con anteprima live dello score.
-5. Submit → **Pagina risultato** con destinazione, motivazione, timeline.
+4. *Nuova valutazione* → form a 4 step (Paziente + anamnesi rapida → Scala sintomi →
+   Logistica → Riepilogo) con anteprima live dello score.
+   - Lo **stepper è cliccabile**: si salta a qualunque sezione senza perdere i dati inseriti.
+   - Dentro la scala sintomi c'è una **riga di 9 pulsanti numerati** per andare direttamente
+     a un sintomo; quelli con punteggio > 0 sono evidenziati.
+   - I punteggi **non vengono mai azzerati** dalla navigazione: per ripartire da zero ci sono
+     *Azzera questo sintomo* e *Azzera tutta la scala*.
+   - I **commenti dell'operatore** (con dettatura vocale) sono disponibili sia in Logistica
+     sia nel Riepilogo.
+5. Submit → **Pagina risultato** con destinazione, chiamata diretta al centro, motivazione,
+   stato del trasporto e timeline.
 6. *Stampa report* → vista A4 e dialog di stampa del browser.
 7. **Archivio** → filtri HUB/SPOKE/rischio + ricerca + eliminazione.
 
@@ -351,6 +434,11 @@ npm run dev          # http://localhost:5173 (proxy /api → :4000)
 - Tutti gli input sono validati e sanitizzati lato backend; il body è limitato a 256 kB.
 - Lo score viene **ricalcolato dal backend** al `POST`: il client non può iniettare un punteggio arbitrario.
 - Nessun dato del triage BE-FAST pubblico viene inviato al server o salvato.
+- Un valore numerico **assente** (`""`, `null`, `undefined`) è trattato come *non specificato*,
+  non come `0`: `sanitizeNumber()` lo distingue esplicitamente. Serve perché un esordio ignoto
+  ("wake-up stroke") registrato come `0` significherebbe "appena avvenuto" e falserebbe sia il
+  cronometro sia la regola delle 4h; per lo stesso motivo un tempo HUB vuoto ora produce un
+  errore di validazione invece di passare come `0 min`.
 
 ---
 

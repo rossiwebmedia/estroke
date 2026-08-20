@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 import { IconClock, IconAlert } from './icons.jsx';
 
+// Sentinella per "esordio non noto" (wake-up stroke): NON è un numero di minuti.
+// Chi salva la valutazione deve convertirla in null, mai in 0, altrimenti un
+// esordio ignoto verrebbe registrato come "appena avvenuto".
+export const UNKNOWN_ONSET = '__unknown__';
+
 // Chip rapidi per inserire l'ultima volta visto bene senza tastiera.
 // Calcola lastSeenWell come ISO datetime-local e onsetMinutes come minuti.
 // Tutte le opzioni sono pensate per essere tappabili con guanti / una sola mano.
@@ -32,7 +37,7 @@ export default function QuickChipLastSeen({ value, onsetMinutes, onChange }) {
   // Trova il chip attualmente attivo (se onsetMinutes è esattamente uno dei valori)
   const om = Number(onsetMinutes);
   const activeChip = Number.isFinite(om) ? CHIPS.find((c) => c.min === om) : null;
-  const unknown = onsetMinutes === '__unknown__';
+  const unknown = onsetMinutes === UNKNOWN_ONSET;
 
   function pick(min) {
     const lastSeen = new Date(Date.now() - min * 60 * 1000);
@@ -43,7 +48,7 @@ export default function QuickChipLastSeen({ value, onsetMinutes, onChange }) {
   }
 
   function pickUnknown() {
-    onChange({ lastSeenWell: '', onsetMinutes: '__unknown__' });
+    onChange({ lastSeenWell: '', onsetMinutes: UNKNOWN_ONSET });
   }
 
   return (

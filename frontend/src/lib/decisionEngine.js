@@ -59,6 +59,30 @@ export const SYMPTOM_FIELDS = [
   },
 ];
 
+// Anamnesi rapida raccolta nello step Paziente (richiesta cliente rev. 2).
+export const ANTICOAGULANT_OPTIONS = ['NO', 'NAO', 'TAO', 'NON_NOTO'];
+export const ANTICOAGULANT_LABELS = {
+  NO:       'No',
+  NAO:      'Sì — NAO',
+  TAO:      'Sì — TAO',
+  NON_NOTO: 'Non noto',
+};
+
+export const AUTONOMY_OPTIONS = ['SI', 'NO', 'NON_NOTO'];
+export const AUTONOMY_LABELS = {
+  SI:       'Sì, autonomo',
+  NO:       'No, non autonomo',
+  NON_NOTO: 'Non noto',
+};
+
+// Regola "finestra trombolitica chiusa" (richiesta cliente rev. 2):
+// punteggio oltre 80 + somma fra tempo di insorgenza sintomi e tempo di
+// percorrenza verso l'ospedale superiore a 4h ⇒ destinazione HUB.
+export const WINDOW_RULE = {
+  scoreOver: 80,
+  totalMinutesOver: 240, // 4h
+};
+
 const DISCLAIMER = 'La decisione finale resta in carico al personale sanitario qualificato.';
 
 function calcScore(symptoms = {}) {
@@ -72,9 +96,10 @@ export function decisionEngine(input = {}) {
   const symptoms = input.symptoms || {};
   const score = calcScore(symptoms);
 
-  const hubTime  = Number(input.hubTimeMin);
-  const hubDist  = Number(input.hubDistanceKm);
-  const onsetMin = Number(input.onsetMinutes);
+  const hubTime   = Number(input.hubTimeMin);
+  const hubDist   = Number(input.hubDistanceKm);
+  const spokeTime = Number(input.spokeTimeMin);
+  const onsetMin  = Number(input.onsetMinutes);
 
   let riskClass, lvoEstimate, suggestedDestination, rationale;
 
@@ -109,12 +134,46 @@ export function decisionEngine(input = {}) {
     rationale = `Punteggio Estroke ${score} (≥ 225) compatibile con NIHSS 6-8 e probabilità LVO stimata 50-60%. Trasporto diretto al centro HUB per possibile trombectomia meccanica.`;
   }
 
+  // --------------------------------------------------------------------------
+  // Regola finestra chiusa → escalation a HUB (può solo alzare, mai abbassare).
+  // --------------------------------------------------------------------------
+  const travelMin = Number.isFinite(spokeTime) ? spokeTime : hubTime;
+  const totalMin =
+    Number.isFinite(onsetMin) && Number.isFinite(travelMin) ? onsetMin + travelMin : null;
+  const windowRuleApplied =
+    score > WINDOW_RULE.scoreOver &&
+    totalMin !== null &&
+    totalMin > WINDOW_RULE.totalMinutesOver &&
+    suggestedDestination !== 'HUB';
+
+  if (windowRuleApplied) {
+    const previous = suggestedDestination;
+    suggestedDestination = 'HUB';
+    rationale =
+      `Punteggio Estroke ${score} (> ${WINDOW_RULE.scoreOver}) con tempo totale stimato ${totalMin} min ` +
+      `(esordio ${onsetMin} min + ${travelMin} min di percorrenza) superiore a 4h: la finestra trombolitica ` +
+      `è di fatto chiusa, quindi il trattamento di prossimità non porterebbe beneficio. ` +
+      `Destinazione modificata da ${previous} a HUB per possibile trombectomia meccanica.`;
+  }
+
   const warnings = [];
   if (Number.isFinite(onsetMin) && onsetMin > 270) {
     warnings.push(`Tempo dall'esordio dei sintomi superiore a 4h30 (${onsetMin} min): valutare attentamente la finestra terapeutica.`);
   }
   if (!input.lastSeenWell) {
     warnings.push('Orario "ultima volta visto bene" non specificato: dato critico per la finestra trombolitica.');
+  }
+  if (windowRuleApplied) {
+    warnings.push(
+      `Somma esordio + percorrenza (${totalMin} min) oltre le 4h con punteggio > ${WINDOW_RULE.scoreOver}: ` +
+      `indicazione automatica al centro HUB.`
+    );
+  }
+  if (input.anticoagulant === 'NAO' || input.anticoagulant === 'TAO') {
+    warnings.push(
+      `Paziente in terapia anticoagulante (${input.anticoagulant}): possibile controindicazione alla trombolisi. ` +
+      `Segnalare al centro ricevente e valutare il percorso trombectomia.`
+    );
   }
   const motor =
     Number(symptoms.upperLimbMotorLeft  || 0) + Number(symptoms.upperLimbMotorRight || 0) +
@@ -128,5 +187,13 @@ export function decisionEngine(input = {}) {
     warnings.push('Deficit motorio nettamente asimmetrico (lateralizzazione): coerente con quadro ischemico focale.');
   }
 
-  return { score, riskClass, lvoEstimate, suggestedDestination, rationale, warnings, disclaimer: DISCLAIMER };
+  return {
+    score, riskClass, lvoEstimate, suggestedDestination, rationale, warnings,
+    windowRule: {
+      applied: windowRuleApplied,
+      totalMinutes: totalMin,
+      travelMinutes: Number.isFinite(travelMin) ? travelMin : null,
+    },
+    disclaimer: DISCLAIMER,
+  };
 }

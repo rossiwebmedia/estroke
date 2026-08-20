@@ -1,5 +1,11 @@
 import React from 'react';
-import { SYMPTOM_FIELDS, decisionEngine } from '../lib/decisionEngine.js';
+import {
+  SYMPTOM_FIELDS,
+  decisionEngine,
+  ANTICOAGULANT_LABELS,
+  AUTONOMY_LABELS,
+} from '../lib/decisionEngine.js';
+import { UNKNOWN_ONSET } from './QuickChipLastSeen.jsx';
 import { IconArrowRight, IconAlert } from './icons.jsx';
 
 const destBadge = {
@@ -32,14 +38,25 @@ function Row({ k, v }) {
   );
 }
 
-export default function EvaluationSummary({ data, onEditPaziente, onEditSintomi, onEditLogistica }) {
+export default function EvaluationSummary({
+  data,
+  missingRequired = [],
+  onEditPaziente,
+  onEditSintomi,
+  onEditLogistica,
+}) {
+  const onsetKnown = data.onsetMinutes !== '' && data.onsetMinutes !== UNKNOWN_ONSET;
+
   // Calcolo l'anteprima coi numeri convertiti.
   const preview = decisionEngine({
     ...data,
     hubTimeMin: Number(data.hubTimeMin),
     hubDistanceKm: Number(data.hubDistanceKm),
-    onsetMinutes: data.onsetMinutes === '' ? null : Number(data.onsetMinutes),
+    spokeTimeMin: data.spokeTimeMin === '' ? null : Number(data.spokeTimeMin),
+    onsetMinutes: onsetKnown ? Number(data.onsetMinutes) : null,
   });
+
+  const editStep = { 0: onEditPaziente, 2: onEditLogistica };
 
   return (
     <div className="space-y-4">
@@ -74,8 +91,21 @@ export default function EvaluationSummary({ data, onEditPaziente, onEditSintomi,
         <Row k="ID paziente"           v={data.patientId || '—'} />
         <Row k="Età · Sesso"           v={`${data.age || '—'} anni · ${data.sex}`} />
         <Row k="Comune"                v={data.city || '—'} />
-        <Row k="Esordio sintomi"       v={data.onsetMinutes !== '' ? `${data.onsetMinutes} min fa` : '—'} />
+        <Row
+          k="Esordio sintomi"
+          v={onsetKnown
+            ? `${data.onsetMinutes} min fa`
+            : data.onsetMinutes === UNKNOWN_ONSET ? 'Non noto / wake-up stroke' : '—'}
+        />
         <Row k="Ultima volta visto bene" v={data.lastSeenWell || '—'} />
+        <Row
+          k="Terapia anticoagulante"
+          v={ANTICOAGULANT_LABELS[data.anticoagulant] || ANTICOAGULANT_LABELS.NON_NOTO}
+        />
+        <Row
+          k="Paziente autonomo"
+          v={AUTONOMY_LABELS[data.autonomous] || AUTONOMY_LABELS.NON_NOTO}
+        />
       </Section>
 
       <Section title="Scala sintomi · Estroke" onEdit={onEditSintomi}>
@@ -102,11 +132,17 @@ export default function EvaluationSummary({ data, onEditPaziente, onEditSintomi,
         <div className="grid grid-cols-2 gap-x-6">
           <div>
             <div className="text-[10px] uppercase tracking-widest text-primary-700/70 mb-1">HUB</div>
+            {data.hubHospitalName && (
+              <div className="text-sm font-semibold text-primary-900 mb-1">{data.hubHospitalName}</div>
+            )}
             <Row k="Tempo"    v={`${data.hubTimeMin || '—'} min`} />
             <Row k="Distanza" v={`${data.hubDistanceKm || '—'} km`} />
           </div>
           <div>
             <div className="text-[10px] uppercase tracking-widest text-primary-700/70 mb-1">SPOKE</div>
+            {data.spokeHospitalName && (
+              <div className="text-sm font-semibold text-primary-900 mb-1">{data.spokeHospitalName}</div>
+            )}
             <Row k="Tempo"    v={`${data.spokeTimeMin || '—'} min`} />
             <Row k="Distanza" v={`${data.spokeDistanceKm || '—'} km`} />
           </div>
@@ -119,11 +155,31 @@ export default function EvaluationSummary({ data, onEditPaziente, onEditSintomi,
         </Section>
       )}
 
-      <div className="card p-4 text-sm bg-warning-50/40 border-warning-100 text-primary-900">
-        <strong>Sei pronto a salvare?</strong> Controlla i dati qui sopra; al salvataggio la
-        valutazione finirà nell'archivio con stato <em>in transito</em> in attesa di review
-        del Medico HUB.
-      </div>
+      {missingRequired.length > 0 ? (
+        <div className="card p-4 text-sm bg-danger-50 border-danger-100 text-primary-900">
+          <div className="flex items-center gap-1.5 font-bold text-danger mb-2">
+            <IconAlert className="w-4 h-4" /> Dati obbligatori mancanti
+          </div>
+          <ul className="space-y-1.5">
+            {missingRequired.map((m) => (
+              <li key={m.label} className="flex items-center justify-between gap-3">
+                <span>• {m.label}</span>
+                {editStep[m.step] && (
+                  <button onClick={editStep[m.step]} className="btn-ghost text-xs py-1 px-2 shrink-0">
+                    Compila <IconArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <div className="card p-4 text-sm bg-warning-50/40 border-warning-100 text-primary-900">
+          <strong>Sei pronto a salvare?</strong> Controlla i dati qui sopra; al salvataggio la
+          valutazione finirà nell'archivio con stato <em>in transito</em> in attesa di review
+          del Medico HUB.
+        </div>
+      )}
     </div>
   );
 }

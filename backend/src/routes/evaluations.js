@@ -1,11 +1,21 @@
 import { Router } from 'express';
 import { nanoid } from 'nanoid';
 import { store } from '../lib/store.js';
-import { decisionEngine, SYMPTOM_FIELDS } from '../lib/decisionEngine.js';
+import {
+  decisionEngine,
+  SYMPTOM_FIELDS,
+  ANTICOAGULANT_OPTIONS,
+  AUTONOMY_OPTIONS,
+} from '../lib/decisionEngine.js';
 
 const router = Router();
 
 function sanitizeNumber(v, { min = 0, max = 1e6 } = {}) {
+  // Un valore assente ("", null, undefined) NON è zero: va trattato come
+  // "non specificato". Senza questo controllo Number('') e Number(null)
+  // valgono 0 e un esordio ignoto ("wake-up stroke") verrebbe archiviato
+  // come "0 minuti fa", falsando la finestra terapeutica.
+  if (v === '' || v === null || v === undefined) return null;
   const n = Number(v);
   if (!Number.isFinite(n)) return null;
   if (n < min || n > max) return null;
@@ -27,6 +37,20 @@ function validateInput(body) {
 
   out.onsetMinutes  = sanitizeNumber(body.onsetMinutes,  { min: 0, max: 60 * 48 });
   out.lastSeenWell  = body.lastSeenWell ? String(body.lastSeenWell).slice(0, 25) : '';
+
+  // Anamnesi rapida (richiesta cliente rev. 2). In assenza di risposta
+  // esplicita si registra "NON_NOTO": mai un default clinicamente rassicurante.
+  out.anticoagulant = ANTICOAGULANT_OPTIONS.includes(body.anticoagulant)
+    ? body.anticoagulant : 'NON_NOTO';
+  out.autonomous    = AUTONOMY_OPTIONS.includes(body.autonomous)
+    ? body.autonomous : 'NON_NOTO';
+
+  // Centri di riferimento proposti dalla geolocalizzazione dell'operatore.
+  // Servono al Result per mostrare l'ospedale e il contatto del neurologo.
+  out.hubHospitalId    = String(body.hubHospitalId    || '').trim().slice(0, 40);
+  out.hubHospitalName  = String(body.hubHospitalName  || '').trim().slice(0, 120);
+  out.spokeHospitalId  = String(body.spokeHospitalId  || '').trim().slice(0, 40);
+  out.spokeHospitalName= String(body.spokeHospitalName|| '').trim().slice(0, 120);
 
   out.hubTimeMin     = sanitizeNumber(body.hubTimeMin,     { min: 0, max: 600 });
   out.hubDistanceKm  = sanitizeNumber(body.hubDistanceKm,  { min: 0, max: 1000 });

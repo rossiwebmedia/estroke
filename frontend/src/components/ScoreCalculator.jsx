@@ -5,6 +5,9 @@ import { SYMPTOM_FIELDS } from '../lib/decisionEngine.js';
 // Estratto come componente perché lo riusiamo sia nella modalità "tutti i 9 in
 // scroll" (singleIndex non passato) sia nella modalità wizard (1 alla volta).
 function SymptomCard({ field, selected, onSelect }) {
+  // Un valore è "inserito" quando l'operatore ha toccato una delle opzioni:
+  // 0 resta un valore valido (sintomo assente), quindi distinguiamo con undefined.
+  const hasValue = selected !== undefined && selected !== null && selected !== '';
   return (
     <div className="card p-5 lg:p-6">
       <div className="flex items-baseline justify-between mb-2 gap-3">
@@ -56,6 +59,18 @@ function SymptomCard({ field, selected, onSelect }) {
           );
         })}
       </div>
+
+      {/* Azzeramento esplicito: tornando indietro il valore resta (nessuna
+        * perdita di dati), ma l'operatore può ripartire da zero con un tap. */}
+      {hasValue && Number(selected) !== 0 && (
+        <button
+          type="button"
+          onClick={() => onSelect(0)}
+          className="mt-3 text-sm text-primary-700 hover:text-danger underline decoration-dotted"
+        >
+          Azzera questo sintomo
+        </button>
+      )}
     </div>
   );
 }

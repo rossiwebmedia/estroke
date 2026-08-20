@@ -6,7 +6,9 @@ import ResultCard from '../components/ResultCard.jsx';
 import DecisionTimeline from '../components/DecisionTimeline.jsx';
 import HubReviewActions from '../components/HubReviewActions.jsx';
 import TransitActions from '../components/TransitActions.jsx';
+import CallActions from '../components/CallActions.jsx';
 import OnsetTimer from '../components/OnsetTimer.jsx';
+import { ANTICOAGULANT_LABELS, AUTONOMY_LABELS } from '../lib/decisionEngine.js';
 import { IconPrinter, IconPlus, IconCheck } from '../components/icons.jsx';
 
 export default function Result() {
@@ -72,6 +74,8 @@ export default function Result() {
 
       <ResultCard result={displayedResult} />
 
+      <CallActions evaluation={evaluation} />
+
       <TransitActions
         evaluation={evaluation}
         onUpdated={(updated) => setEvaluation(updated)}
@@ -109,8 +113,20 @@ export default function Result() {
           <Row label="Tempo SPOKE"  value={`${input.spokeTimeMin ?? '—'} min`} />
           <Row label="Distanza SPOKE" value={`${input.spokeDistanceKm ?? '—'} km`} />
           <hr className="my-3 border-primary-50" />
-          <Row label="Esordio sintomi" value={input.onsetMinutes != null ? `${input.onsetMinutes} min fa` : '—'} />
+          <Row
+            label="Esordio sintomi"
+            value={input.onsetMinutes != null ? `${input.onsetMinutes} min fa` : 'Non noto'}
+          />
           <Row label="Ultima volta visto bene" value={input.lastSeenWell || '—'} />
+          <hr className="my-3 border-primary-50" />
+          <Row
+            label="Terapia anticoagulante"
+            value={ANTICOAGULANT_LABELS[input.anticoagulant] || ANTICOAGULANT_LABELS.NON_NOTO}
+          />
+          <Row
+            label="Paziente autonomo"
+            value={AUTONOMY_LABELS[input.autonomous] || AUTONOMY_LABELS.NON_NOTO}
+          />
         </div>
       </div>
 

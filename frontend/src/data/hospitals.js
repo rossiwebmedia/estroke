@@ -55,9 +55,10 @@ export const HOSPITALS = [
   // SALERNO & PROVINCIA
   { id: 'sa-ruggi',        name: 'AOU San Giovanni di Dio e Ruggi d\'Aragona', city: 'Salerno',                   type: 'HUB',   lat: 40.6707, lon: 14.7916, phone: '089 6731111' },
   { id: 'sa-pagani',       name: 'Ospedale Andrea Tortora',                    city: 'Pagani',                    type: 'PS',    lat: 40.7415, lon: 14.6160, phone: '081 9189111' },
-  { id: 'sa-nocera',       name: 'Ospedale Umberto I',                         city: 'Nocera Inferiore',          type: 'SPOKE', lat: 40.7457, lon: 14.6447, phone: '081 9214111' },
+  { id: 'sa-nocera',       name: 'Ospedale Umberto I',                         city: 'Nocera Inferiore',          type: 'HUB',   lat: 40.7457, lon: 14.6447, phone: '081 9214111' },
   { id: 'sa-eboli',        name: 'Ospedale Maria SS. Addolorata',              city: 'Eboli',                     type: 'SPOKE', lat: 40.6202, lon: 15.0556, phone: '0828 364111' },
-  { id: 'sa-polla',        name: 'Ospedale Luigi Curto',                       city: 'Polla',                     type: 'PS',    lat: 40.5128, lon: 15.4977, phone: '0975 373111' },
+  { id: 'sa-polla',        name: 'Ospedale Luigi Curto',                       city: 'Polla',                     type: 'SPOKE', lat: 40.5128, lon: 15.4977, phone: '0975 373111' },
+  { id: 'sa-vallo',        name: 'Ospedale San Luca',                          city: 'Vallo della Lucania',       type: 'SPOKE', lat: 40.2283, lon: 15.2653, phone: '0974 711111' },
   { id: 'sa-cava',         name: 'Ospedale Santa Maria dell\'Olmo',            city: 'Cava de\' Tirreni',         type: 'PS',    lat: 40.7050, lon: 14.7060, phone: '089 4452111' },
 
   // CASERTA
@@ -71,6 +72,21 @@ export const HOSPITALS = [
   // BENEVENTO
   { id: 'bn-rummo',        name: 'AORN San Pio (Rummo)',                       city: 'Benevento',                 type: 'HUB',   lat: 41.1245, lon: 14.7889, phone: '0824 571111' },
 ];
+
+// ============================================================================
+// Rete attiva per l'Operatore 118 (richiesta cliente, revisione 2)
+// ============================================================================
+// La geolocalizzazione dell'operatore propone SOLO questi centri: sono i 4
+// indicati dal cliente come rete di riferimento in fase di prova.
+//   HUB   → Ruggi d'Aragona (Salerno), Umberto I (Nocera Inferiore)
+//   SPOKE → Luigi Curto (Polla), San Luca (Vallo della Lucania)
+//
+// Per allargare la rete basta aggiungere gli id qui: il resto del dataset
+// HOSPITALS resta comunque usato dal triage pubblico BE-FAST (cittadini),
+// che continua a mostrare l'ospedale più vicino in assoluto.
+export const OPERATOR_NETWORK_IDS = ['sa-ruggi', 'sa-nocera', 'sa-polla', 'sa-vallo'];
+
+export const OPERATOR_NETWORK = HOSPITALS.filter((h) => OPERATOR_NETWORK_IDS.includes(h.id));
 
 // Lista comuni con coordinate, usata per il fallback "inserisci il tuo comune".
 // Sottoinsieme della Sicilia più popolosa — basta per la demo.
@@ -118,4 +134,9 @@ export const CITY_COORDINATES = [
   { name: 'Ariano Irpino',           lat: 41.1500, lon: 15.0833 },
   { name: 'Scafati',                 lat: 40.7536, lon: 14.5273 },
   { name: 'Pompei',                  lat: 40.7488, lon: 14.5004 },
+  { name: 'Polla',                   lat: 40.5167, lon: 15.5000 },
+  { name: 'Vallo della Lucania',     lat: 40.2283, lon: 15.2650 },
+  { name: 'Sala Consilina',          lat: 40.3906, lon: 15.5936 },
+  { name: 'Agropoli',                lat: 40.3536, lon: 14.9930 },
+  { name: 'Sapri',                   lat: 40.0756, lon: 15.6314 },
 ];

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
+import { ANTICOAGULANT_LABELS, AUTONOMY_LABELS } from '../lib/decisionEngine.js';
 
 function fmt(iso) {
   if (!iso) return '—';
@@ -24,6 +25,13 @@ export default function PrintableReport({ evaluation }) {
 
   if (!evaluation) return null;
   const { input, result, createdAt, id } = evaluation;
+  // La destinazione stampata è quella EFFETTIVA: se il Medico HUB ha corretto
+  // il suggerimento, il foglio deve riportare la destinazione reale (e quindi
+  // anche il centro di riferimento giusto).
+  const effective = evaluation.effectiveDestination || result.suggestedDestination;
+  const referenceHospital = effective === 'HUB'
+    ? input.hubHospitalName
+    : effective === 'SPOKE' ? input.spokeHospitalName : '';
   return (
     <div className="max-w-3xl mx-auto bg-white text-primary-900 p-8 print:p-0">
       <header className="border-b-2 border-primary pb-4 mb-6 flex items-start justify-between gap-4">
@@ -54,8 +62,10 @@ export default function PrintableReport({ evaluation }) {
           ['Età', `${input.age ?? '—'} anni`],
           ['Sesso', input.sex],
           ['Luogo', input.city || '—'],
-          ['Tempo dall\'esordio', input.onsetMinutes != null ? `${input.onsetMinutes} min` : '—'],
+          ['Tempo dall\'esordio', input.onsetMinutes != null ? `${input.onsetMinutes} min` : 'Non noto'],
           ['Ultima volta visto bene', input.lastSeenWell || '—'],
+          ['Terapia anticoagulante', ANTICOAGULANT_LABELS[input.anticoagulant] || ANTICOAGULANT_LABELS.NON_NOTO],
+          ['Paziente autonomo', AUTONOMY_LABELS[input.autonomous] || AUTONOMY_LABELS.NON_NOTO],
           ['Operatore', input.operatorRole],
         ]} />
       </section>
@@ -65,6 +75,8 @@ export default function PrintableReport({ evaluation }) {
           Logistica
         </h2>
         <Grid items={[
+          ['Centro HUB',           input.hubHospitalName   || '—'],
+          ['Centro SPOKE',         input.spokeHospitalName || '—'],
           ['Tempo verso HUB',     `${input.hubTimeMin ?? '—'} min`],
           ['Distanza verso HUB',  `${input.hubDistanceKm ?? '—'} km`],
           ['Tempo verso SPOKE',   `${input.spokeTimeMin ?? '—'} min`],
@@ -81,7 +93,11 @@ export default function PrintableReport({ evaluation }) {
             ['Estroke Score', result.score],
             ['Fascia di rischio', result.riskClass],
             ['LVO stimata', result.lvoEstimate],
-            ['Destinazione suggerita', destLabel[result.suggestedDestination] || result.suggestedDestination],
+            ['Destinazione', destLabel[effective] || effective],
+            ...(effective !== result.suggestedDestination
+              ? [['Suggerimento algoritmo', destLabel[result.suggestedDestination] || result.suggestedDestination]]
+              : []),
+            ...(referenceHospital ? [['Centro di riferimento', referenceHospital]] : []),
           ]} />
           <div className="mt-4 text-sm leading-relaxed">
             <div className="font-bold mb-1">Motivazione</div>
